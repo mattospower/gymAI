@@ -1,0 +1,299 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover"
+    />
+    <title>Configurar perfil — gymAI</title>
+    <meta
+      name="description"
+      content="GymIA: projeto acadêmico de uma plataforma de musculação com inteligência artificial. Contas e preferências de treinamento."
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Archivo:wght@700;800;900&amp;family=DM+Sans:wght@400;500;600&amp;family=JetBrains+Mono:wght@500&amp;display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="style.css" />
+    <script type="module" src="assets/site.js"></script>
+    <script type="module" src="assets/profile.js"></script>
+  </head>
+  <body>
+    <a class="skip-link" href="#conteudo">Pular para o conteúdo</a>
+    <header>
+      <nav class="wrap" aria-label="Navegação principal">
+        <a class="logo" href="index.html" aria-label="gymAI — início"
+          >gym<b>AI</b></a
+        >
+        <button
+          class="nav-toggle btn btn-line"
+          type="button"
+          aria-expanded="false"
+          aria-controls="menu"
+        >
+          Menu
+        </button>
+        <ul class="links" id="menu">
+          <li><a href="como-funciona.html">Como funciona</a></li>
+          <li><a href="recursos.html">Recursos</a></li>
+          <li><a href="index.html#resultados">O projeto</a></li>
+          <li class="mobile-account">
+            <a href="entrar.html" data-account-link>Entrar</a>
+          </li>
+        </ul>
+        <div class="actions">
+          <a class="plain" href="entrar.html" data-account-link>Entrar</a
+          ><a class="btn btn-blue" href="cadastro.html" data-signup-link
+            >Criar conta</a
+          >
+        </div>
+      </nav>
+    </header>
+    <main id="conteudo">
+      <section class="page-section">
+        <div class="wrap narrow">
+          <div class="page-heading">
+            <p class="eyebrow">SEU PRIMEIRO PASSO</p>
+            <h1>Vamos conhecer sua rotina.</h1>
+            <p class="lead">
+              Três etapas para organizar suas preferências. Você pode mudar tudo
+              depois.
+            </p>
+          </div>
+          <noscript
+            ><p class="notice">
+              Ative o JavaScript para preencher e salvar seu perfil.
+            </p></noscript
+          >
+          <p data-loading role="status">Carregando sua conta…</p>
+          <div data-private-content hidden>
+            <div class="progress-header">
+              <span id="step-label" class="mono">Etapa 1 de 3</span
+              ><button type="button" class="text-button" data-logout>
+                Sair da conta
+              </button>
+            </div>
+            <progress
+              id="profile-progress"
+              max="3"
+              value="1"
+              aria-labelledby="step-label"
+            ></progress>
+            <ol class="step-indicator" aria-label="Etapas do perfil">
+              <li aria-current="step">Objetivo</li>
+              <li>Rotina</li>
+              <li>Cuidados</li>
+            </ol>
+            <div class="card form-card">
+              <p
+                class="message"
+                data-message
+                role="status"
+                tabindex="-1"
+                hidden
+              ></p>
+              <form method="post" id="profile-form" novalidate>
+                <fieldset data-step="0">
+                  <legend>1. Seu objetivo</legend>
+                  <p class="muted">O que você busca com o treinamento?</p>
+                  <div class="field">
+                    <label for="goal">Objetivo do treinamento</label
+                    ><select id="goal" name="goal" required>
+                      <option value="">Selecione</option>
+                      <option value="hipertrofia">Hipertrofia</option>
+                      <option value="forca">Força</option>
+                      <option value="resistencia">Resistência muscular</option>
+                      <option value="condicionamento">
+                        Condicionamento físico
+                      </option>
+                    </select>
+                  </div>
+                  <div class="field">
+                    <label for="experience">Experiência</label
+                    ><select id="experience" name="experience" required>
+                      <option value="">Selecione</option>
+                      <option value="iniciante">Iniciante</option>
+                      <option value="intermediario">Intermediário</option>
+                      <option value="avancado">Avançado</option>
+                    </select>
+                  </div>
+                </fieldset>
+                <fieldset data-step="1" hidden>
+                  <legend>2. Sua rotina</legend>
+                  <p class="muted">Encontre espaço para o treino no seu dia.</p>
+                  <div class="form-grid">
+                    <div class="field">
+                      <label for="days">Dias disponíveis por semana</label
+                      ><select id="days" name="days" required>
+                        <option value="">Selecione</option>
+                        <option value="1">1 dia</option>
+                        <option value="2">2 dias</option>
+                        <option value="3">3 dias</option>
+                        <option value="4">4 dias</option>
+                        <option value="5">5 dias</option>
+                        <option value="6">6 dias</option>
+                        <option value="7">7 dias</option>
+                      </select>
+                    </div>
+                    <div class="field">
+                      <label for="minutes">Tempo por sessão</label
+                      ><select id="minutes" name="minutes" required>
+                        <option value="">Selecione</option>
+                        <option value="15">15 minutos</option>
+                        <option value="30">30 minutos</option>
+                        <option value="45">45 minutos</option>
+                        <option value="60">60 minutos</option>
+                        <option value="90">90 minutos</option>
+                        <option value="120">120 minutos</option>
+                        <option value="150">150 minutos</option>
+                        <option value="180">180 minutos</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div class="field">
+                    <label for="location">Local do treinamento</label
+                    ><select id="location" name="location" required>
+                      <option value="">Selecione</option>
+                      <option value="academia">Academia</option>
+                      <option value="casa">Casa</option>
+                      <option value="outro">Outro ambiente</option>
+                    </select>
+                  </div>
+                  <fieldset class="equipment">
+                    <legend>
+                      Equipamentos disponíveis
+                      <span class="hint">(selecione pelo menos um)</span>
+                    </legend>
+                    <div class="choice-grid">
+                      <label class="choice"
+                        ><input
+                          type="checkbox"
+                          name="equipment"
+                          value="halteres"
+                        /><span>Halteres</span></label
+                      ><label class="choice"
+                        ><input
+                          type="checkbox"
+                          name="equipment"
+                          value="barras"
+                        /><span>Barras</span></label
+                      ><label class="choice"
+                        ><input
+                          type="checkbox"
+                          name="equipment"
+                          value="maquinas"
+                        /><span>Máquinas</span></label
+                      ><label class="choice"
+                        ><input
+                          type="checkbox"
+                          name="equipment"
+                          value="elasticos"
+                        /><span>Elásticos</span></label
+                      ><label class="choice"
+                        ><input
+                          type="checkbox"
+                          name="equipment"
+                          value="peso-corporal"
+                        /><span>Peso corporal</span></label
+                      ><label class="choice"
+                        ><input
+                          type="checkbox"
+                          name="equipment"
+                          value="outros"
+                        /><span>Outros</span></label
+                      >
+                    </div>
+                    <p class="hint" data-equipment-error hidden>
+                      Selecione pelo menos um equipamento.
+                    </p>
+                  </fieldset>
+                  <div class="field" data-other-equipment hidden>
+                    <label for="otherEquipment"
+                      >Quais outros equipamentos?</label
+                    ><input
+                      id="otherEquipment"
+                      name="otherEquipment"
+                      maxlength="200"
+                    />
+                  </div>
+                </fieldset>
+                <fieldset data-step="2" hidden>
+                  <legend>3. Seus cuidados</legend>
+                  <div class="notice">
+                    <strong>Compartilhe apenas o necessário.</strong>
+                    <p>
+                      Este campo é opcional. O gymAI não diagnostica lesões nem
+                      substitui a avaliação de um profissional de saúde ou de
+                      Educação Física.
+                    </p>
+                  </div>
+                  <div class="field">
+                    <label for="limitations"
+                      >Limitações físicas ou restrições (opcional)</label
+                    ><textarea
+                      id="limitations"
+                      name="limitations"
+                      rows="4"
+                      maxlength="2000"
+                      aria-describedby="limitations-help"
+                    ></textarea>
+                    <p id="limitations-help" class="hint">
+                      Até 2.000 caracteres. As informações ficam no seu perfil e
+                      podem ser removidas a qualquer momento.
+                    </p>
+                  </div>
+                  <label class="check" data-sensitive-consent hidden
+                    ><input id="sensitiveConsent" type="checkbox" /><span
+                      >Autorizo o armazenamento das limitações que informei para
+                      compor meu perfil de treinamento, conforme a
+                      <a href="privacidade.html" target="_blank" rel="noopener"
+                        >política de privacidade</a
+                      >. Posso retirar esta autorização apagando o campo e
+                      salvando.</span
+                    ></label
+                  >
+                  <div class="review-box">
+                    <h2>Confira suas escolhas</h2>
+                    <p data-review></p>
+                  </div>
+                </fieldset>
+                <div class="form-actions">
+                  <button
+                    class="btn btn-line"
+                    type="button"
+                    data-previous
+                    hidden
+                  >
+                    Voltar</button
+                  ><button class="btn btn-blue" type="button" data-next>
+                    Avançar</button
+                  ><button class="btn btn-blue" type="submit" data-save hidden>
+                    Salvar meu perfil
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+    <footer>
+      <div class="wrap">
+        <a class="logo" href="index.html">gym<b>AI</b></a>
+        <ul>
+          <li><a href="como-funciona.html">Como funciona</a></li>
+          <li><a href="recursos.html">Recursos</a></li>
+          <li><a href="privacidade.html">Privacidade</a></li>
+          <li><a href="termos.html">Termos</a></li>
+          <li><a href="contato.html">Contato</a></li>
+        </ul>
+        <p class="small footer-note">
+          Protótipo acadêmico · Etapa 1 · Sem geração de treinos nesta versão.
+        </p>
+      </div>
+    </footer>
+  </body>
+</html>

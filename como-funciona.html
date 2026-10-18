@@ -1,22 +1,109 @@
-Aqui está só a seção "Como funciona", em HTML puro (sem CSS):
-
-```html
-<section id="como-funciona">
-  <h2>Como funciona</h2>
-  <p>Três passos entre você e um treino pensado especificamente para o seu corpo e sua rotina.</p>
-  <ol>
-    <li>
-      <h3>Conte seu objetivo</h3>
-      <p>Hipertrofia, emagrecimento, força ou condicionamento — e quantos dias por semana você pode treinar.</p>
-    </li>
-    <li>
-      <h3>A IA monta o plano</h3>
-      <p>O gymAI cruza seu histórico, equipamentos disponíveis e nível técnico para montar cada sessão.</p>
-    </li>
-    <li>
-      <h3>Treine e evolua</h3>
-      <p>A cada treino registrado, as cargas e o volume são reajustados automaticamente para a semana seguinte.</p>
-    </li>
-  </ol>
-</section>
-```
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover"
+    />
+    <title>Como funciona — gymAI</title>
+    <meta
+      name="description"
+      content="GymIA: projeto acadêmico de uma plataforma de musculação com inteligência artificial. Contas e preferências de treinamento."
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Archivo:wght@700;800;900&amp;family=DM+Sans:wght@400;500;600&amp;family=JetBrains+Mono:wght@500&amp;display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="style.css" />
+    <script type="module" src="assets/site.js"></script>
+  </head>
+  <body>
+    <a class="skip-link" href="#conteudo">Pular para o conteúdo</a>
+    <header>
+      <nav class="wrap" aria-label="Navegação principal">
+        <a class="logo" href="index.html" aria-label="gymAI — início"
+          >gym<b>AI</b></a
+        >
+        <button
+          class="nav-toggle btn btn-line"
+          type="button"
+          aria-expanded="false"
+          aria-controls="menu"
+        >
+          Menu
+        </button>
+        <ul class="links" id="menu">
+          <li><a href="como-funciona.html">Como funciona</a></li>
+          <li><a href="recursos.html">Recursos</a></li>
+          <li><a href="index.html#resultados">O projeto</a></li>
+          <li class="mobile-account">
+            <a href="entrar.html" data-account-link>Entrar</a>
+          </li>
+        </ul>
+        <div class="actions">
+          <a class="plain" href="entrar.html" data-account-link>Entrar</a
+          ><a class="btn btn-blue" href="cadastro.html" data-signup-link
+            >Criar conta</a
+          >
+        </div>
+      </nav>
+    </header>
+    <main id="conteudo">
+      <section class="page-section">
+        <div class="wrap">
+          <div class="page-heading">
+            <p class="eyebrow">ETAPA 1 · CONTA E PERFIL</p>
+            <h1>Uma rotina começa com você.</h1>
+            <p class="lead">Prepare seu perfil em três passos.</p>
+          </div>
+          <ol class="steps">
+            <li>
+              <span class="n">1</span>
+              <h2>Crie sua conta</h2>
+              <p>Cadastre nome, e-mail e senha para acessar seu espaço.</p>
+            </li>
+            <li>
+              <span class="n">2</span>
+              <h2>Conte sua rotina</h2>
+              <p>Escolha objetivo, experiência, dias, tempo e equipamentos.</p>
+            </li>
+            <li>
+              <span class="n">3</span>
+              <h2>Mantenha seu perfil</h2>
+              <p>Edite suas preferências sempre que sua rotina mudar.</p>
+            </li>
+          </ol>
+          <div class="notice section-gap">
+            <strong>IA em uma próxima etapa.</strong>
+            <p>
+              A geração de planos e o acompanhamento da evolução ainda não estão
+              disponíveis. Os exemplos visuais da página inicial apresentam a
+              proposta do projeto.
+            </p>
+          </div>
+          <p class="section-gap">
+            <a class="btn btn-blue" href="cadastro.html">Criar minha conta</a>
+          </p>
+        </div>
+      </section>
+    </main>
+    <footer>
+      <div class="wrap">
+        <a class="logo" href="index.html">gym<b>AI</b></a>
+        <ul>
+          <li><a href="como-funciona.html">Como funciona</a></li>
+          <li><a href="recursos.html">Recursos</a></li>
+          <li><a href="privacidade.html">Privacidade</a></li>
+          <li><a href="termos.html">Termos</a></li>
+          <li><a href="contato.html">Contato</a></li>
+        </ul>
+        <p class="small footer-note">
+          Protótipo acadêmico · Etapa 1 · Sem geração de treinos nesta versão.
+        </p>
+      </div>
+    </footer>
+  </body>
+</html>
