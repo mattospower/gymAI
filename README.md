@@ -1,6 +1,6 @@
-# gymAI — etapa 1
+# gymAI — etapa 2
 
-Evolução do HTML/CSS original para contas reais e perfis de treinamento. Preserva a paleta, as fontes Archivo, DM Sans e JetBrains Mono e os componentes da página inicial. Não gera treinos por IA nesta etapa.
+Evolução do HTML/CSS original para contas, perfis, planos manuais e registros de treinamento. Preserva a paleta, as fontes Archivo, DM Sans e JetBrains Mono e os componentes da página inicial. Não gera treinos por IA nesta etapa.
 
 ## Executar localmente
 
@@ -111,6 +111,38 @@ Os testes de navegador usam Chromium desktop (1440px), emulação móvel (390px)
 | `tests/`, `playwright.config.mjs` | Testes de API e navegador |
 
 As alterações desta etapa devem ser revisadas via Pull Request; não enviar diretamente para `main`.
+
+## Sistema de treinos da Etapa 2
+
+Após entrar, abra **Meus treinos** pelo perfil ou pela navegação. `treinos.html` lista planos e permite retomar uma sessão em andamento. `plano.html` monta e edita as sessões; `exercicios.html` permite pesquisar a biblioteca; `sessao-treino.html` registra valores realizados; `historico.html` consulta os registros.
+
+Planos podem ser salvos, duplicados, arquivados, reativados e excluídos com confirmação. Existe no máximo um plano marcado **Ativo** por conta; os demais ficam **Salvos** ou **Arquivados**. Reativar torna o plano disponível; o usuário escolhe se deseja marcá-lo como ativo. Uma sessão vazia pode ser salva para organização, mas só inicia após receber exercícios.
+
+Séries, repetições/duração e descanso começam em branco e são obrigatoriamente definidos pelo usuário. O objetivo do perfil pode preencher o objetivo de um plano novo, e o filtro de equipamentos do perfil é opcional; nenhuma preferência é modificada automaticamente. A biblioteca recebe somente o contexto necessário ao treinamento, sem o campo de limitações físicas.
+
+Durante a execução, os campos são salvos no servidor após 600 ms sem novas alterações. **Salvar agora** confirma a gravação; a interface só informa que salvou após a resposta da API. Se houver falha, os dados continuam na tela e aparece uma mensagem para tentar novamente. Fechar/navegar com alterações pendentes aciona o aviso do navegador. Nenhum rascunho sensível é gravado em localStorage/sessionStorage. Encerrar o aplicativo ou perder a página antes da confirmação de gravação pode perder as últimas alterações ainda não enviadas.
+
+O usuário pode **Interromper e salvar parcial** ou **Finalizar sessão** sem completar todas as séries. Marcar uma série como concluída exige informar o valor realizado. Uma sessão encerrada fica somente para consulta. Há no máximo uma sessão em andamento por conta. Edições e salvamentos usam versões para rejeitar sobrescritas por outra aba (409), mantendo os valores da tela e orientando reabrir o item.
+
+### Banco e atualização de instalações da Etapa 1
+
+Antes de atualizar uma instalação com dados, mantenha o `.env` e a chave original e crie um backup consistente:
+
+```sh
+node --env-file=.env scripts/backup.mjs
+```
+
+O backup usa a SQLite Backup API e é criado no diretório `backups/` ao lado do banco, fora dos arquivos públicos. Guarde a chave separadamente e proteja as permissões do backup. Depois atualize o código e inicie normalmente. A migração transacional avança `PRAGMA user_version` de 1 para 2, sem apagar ou recriar contas, perfis, cookies de sessão ou links de recuperação.
+
+As tabelas `training_plans` e `workout_logs` guardam os dados novos por usuário. Sessões planejadas e seus exercícios ficam no payload criptografado de cada plano; registros e a cópia dos exercícios usados ficam no payload criptografado de cada execução. Índices garantem um ativo e uma execução em andamento por conta. A exclusão de conta elimina os dados novos por cascata; excluir um plano mantém os registros, com a referência original para filtro. Alterar um plano nunca altera retroativamente uma sessão iniciada ou encerrada.
+
+Limites operacionais do piloto: 100 planos por conta, 7 sessões por plano, 30 exercícios por sessão, 20 séries por exercício e corpo de solicitação de até 256 KiB nas rotas novas. São limites técnicos de armazenamento, **não recomendações de volume**. O histórico retorna até as 500 sessões mais recentes do período consultado; filtros de período/plano permitem consultar registros mais antigos. A interface converte datas do calendário local em instantes para filtrar de acordo com o horário exibido.
+
+### Biblioteca e testes
+
+A biblioteca inicial tem dez movimentos com resumos próprios e links individuais para a **ACE Exercise Library**, consultada em 19/10/2026. Não há alegações de adequação clínica, rotinas sugeridas, imagens ou vídeos de terceiros. Os equipamentos complementares (como bancos) estão descritos em cada cartão; o filtro do perfil compara grupos gerais, sem certificar que o local seja adequado.
+
+`pnpm test` inclui migração de um banco v1 com conta/perfil/sessão existentes, CRUD de planos, duplicação, versões, troca de ativo, arquivo/reativação, progresso e término parcial, histórico, reinício, isolamento e cascatas. `pnpm test:e2e` verifica os fluxos por UI, filtros, ordenação, persistência ao recarregar, acessibilidade e limites dos controles entre 320 e 1440 px. Os testes antigos da Etapa 1 continuam fazendo parte da suíte.
 
 ## Referências técnicas
 

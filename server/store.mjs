@@ -7,6 +7,11 @@ export function openStore(path, key) {
   if (path !== ":memory:")
     mkdirSync(dirname(path), { recursive: true, mode: 0o700 });
   const db = new DatabaseSync(path, { timeout: 5000 });
+  const version = db.prepare("PRAGMA user_version").get().user_version;
+  if (version > 2) {
+    db.close();
+    throw new Error("Banco criado por uma versão mais recente do GymIA.");
+  }
   db.exec(`
     PRAGMA foreign_keys = ON;
     PRAGMA journal_mode = WAL;
@@ -32,7 +37,6 @@ export function openStore(path, key) {
     CREATE TABLE IF NOT EXISTS rate_limits (key TEXT PRIMARY KEY, count INTEGER NOT NULL, until INTEGER NOT NULL);
     CREATE INDEX IF NOT EXISTS sessions_user ON sessions(user_id);
     CREATE INDEX IF NOT EXISTS resets_user ON resets(user_id);
-    PRAGMA user_version = 1;
   `);
   const check = db
     .prepare("SELECT value FROM settings WHERE key = ?")
@@ -52,6 +56,27 @@ export function openStore(path, key) {
       encrypt("gymia", key, "gymia-key-check"),
     );
   }
+  if (version < 2)
+    transaction(db, () =>
+      db.exec(`
+    CREATE TABLE IF NOT EXISTS training_plans (
+      id TEXT PRIMARY KEY, user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      status TEXT NOT NULL CHECK(status IN ('saved','active','archived')), payload TEXT NOT NULL,
+      version INTEGER NOT NULL DEFAULT 1, created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL
+    );
+    CREATE UNIQUE INDEX IF NOT EXISTS one_active_plan ON training_plans(user_id) WHERE status='active';
+    CREATE INDEX IF NOT EXISTS plans_owner ON training_plans(user_id,updated_at);
+    CREATE TABLE IF NOT EXISTS workout_logs (
+      id TEXT PRIMARY KEY, user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      plan_id TEXT REFERENCES training_plans(id) ON DELETE SET NULL, plan_ref TEXT NOT NULL,
+      status TEXT NOT NULL CHECK(status IN ('in_progress','completed','partial')), payload TEXT NOT NULL,
+      version INTEGER NOT NULL DEFAULT 1, started_at INTEGER NOT NULL, finished_at INTEGER
+    );
+    CREATE UNIQUE INDEX IF NOT EXISTS one_running_workout ON workout_logs(user_id) WHERE status='in_progress';
+    CREATE INDEX IF NOT EXISTS workouts_owner_date ON workout_logs(user_id,started_at);
+    PRAGMA user_version = 2;
+  `),
+    );
   return db;
 }
 

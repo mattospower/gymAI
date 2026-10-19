@@ -3,6 +3,7 @@ import { readFile } from "node:fs/promises";
 import { randomUUID, createHmac } from "node:crypto";
 import { fileURLToPath } from "node:url";
 import { openStore, transaction } from "./store.mjs";
+import { trainingRoutes, isTrainingPath } from "./training.mjs";
 import {
   HttpError,
   token,
@@ -37,8 +38,23 @@ const publicFiles = new Set([
   "assets/api.js",
   "assets/auth.js",
   "assets/profile.js",
+  "treinos.html",
+  "plano.html",
+  "exercicios.html",
+  "sessao-treino.html",
+  "historico.html",
+  "assets/training.js",
+  "assets/training-ui.js",
 ]);
-const privatePages = new Set(["configurar-perfil.html", "perfil.html"]);
+const privatePages = new Set([
+  "configurar-perfil.html",
+  "perfil.html",
+  "treinos.html",
+  "plano.html",
+  "exercicios.html",
+  "sessao-treino.html",
+  "historico.html",
+]);
 const mime = {
   html: "text/html; charset=utf-8",
   css: "text/css; charset=utf-8",
@@ -72,6 +88,7 @@ export function createApp({
     throw new Error("Defina DATA_ENCRYPTION_KEY com 64 dígitos hexadecimais.");
   const key = Buffer.from(encryptionKey, "hex");
   const db = openStore(databasePath, key);
+  const training = trainingRoutes({ db, key, now });
   const secure = canonical.protocol === "https:";
   const cookieName = secure ? "__Host-gymia_session" : "gymia_session";
   // Same KDF work for an unknown account to reduce login enumeration by timing.
@@ -159,7 +176,7 @@ export function createApp({
       until = CASE WHEN until <= ? THEN excluded.until ELSE until END`,
     ).run(limitKey, now() + duration, now(), now());
   };
-  const body = async (req) => {
+  const body = async (req, maximum = 16384) => {
     if (req.headers.origin !== origin || req.headers["x-gymia-request"] !== "1")
       throw new HttpError(403, "Origem da solicitação não autorizada.");
     if (
@@ -170,7 +187,7 @@ export function createApp({
     const parts = [];
     for await (const part of req) {
       size += part.length;
-      if (size > 16384)
+      if (size > maximum)
         throw new HttpError(413, "O formulário excede o tamanho permitido.");
       parts.push(part);
     }
@@ -225,6 +242,21 @@ export function createApp({
             updatedAt: row ? new Date(row.updated_at).toISOString() : null,
           });
         }
+        if (isTrainingPath(path)) {
+          const user = requireUser(req);
+          let input = {};
+          if (req.method !== "GET") {
+            if (!["POST", "PUT", "DELETE"].includes(req.method))
+              throw new HttpError(405, "Método não permitido.");
+            limit(`training:${hashed(user.id)}`, 300, 15 * 60 * 1000);
+            input = await body(req, 262144);
+          }
+          return json(
+            res,
+            200,
+            training(req.method, url, requireUser(req), input),
+          );
+        }
         if (!["POST", "PUT", "DELETE"].includes(req.method))
           throw new HttpError(404, "Página não encontrada.");
         // Rate-limit before parsing bodies and running password derivation.
@@ -254,7 +286,7 @@ export function createApp({
               address,
               name,
               hash,
-              "2026-10-18",
+              "2026-10-19",
               now(),
               now(),
             );

@@ -34,6 +34,12 @@ document.querySelectorAll("[data-toggle-password]").forEach((button) => {
 
 document.querySelectorAll("[data-logout]").forEach((button) => {
   button.addEventListener("click", async () => {
+    if (
+      !window.dispatchEvent(
+        new Event("gymia:before-logout", { cancelable: true }),
+      )
+    )
+      return;
     button.disabled = true;
     try {
       await api("logout", { method: "POST", body: {} });
