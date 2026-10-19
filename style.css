@@ -8,7 +8,8 @@
   padding-top:env(safe-area-inset-top,0px);
   padding-bottom:env(safe-area-inset-bottom,0px);
 }
-*,*::before,*::after{box-sizing:inherit}
+/* Evita herdar content-box do conteúdo interno de <details>. */
+*,*::before,*::after{box-sizing:border-box}
 html{scroll-padding-top:calc(env(safe-area-inset-top,0px) + 80px);scroll-behavior:smooth}
 html{background:var(--bg);color-scheme:light}
 body{margin:0;background:var(--bg);color:var(--ink);font-family:'DM Sans',system-ui,sans-serif;line-height:1.55;-webkit-font-smoothing:antialiased}
@@ -202,7 +203,7 @@ progress::-moz-progress-bar{background:var(--blue)}
 fieldset{border:0;padding:0;margin:0 0 26px;min-width:0}
 fieldset>legend{font-family:'Archivo',sans-serif;font-size:23px;letter-spacing:-.02em;margin-bottom:22px;line-height:1.2;padding:0}
 fieldset>p.muted{margin:-6px 0 26px}
-.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:end}
 .equipment>legend{font-family:'DM Sans',sans-serif;font-size:16px;letter-spacing:0;line-height:1.5;margin-bottom:12px}
 .choice-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 .choice{display:flex;align-items:center;gap:10px;padding:13px 14px;border:1px solid var(--line);border-radius:12px;background:var(--bg);font-size:14px;cursor:pointer}
