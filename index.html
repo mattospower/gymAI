@@ -7,42 +7,35 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@700;800;900&family=DM+Sans:wght@400;500;600&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="estilo.css">
-</head>
+<link rel="stylesheet" href="style.css">
+<meta name="description" content="GymIA: projeto acadêmico de musculação com inteligência artificial. Crie sua conta e configure suas preferências."><script type="module" src="assets/site.js"></script></head>
 <body>
 
-<header>
-  <nav class="wrap">
-    <a class="logo" href="#topo">gym<b>AI</b></a>
-    <ul class="links">
-      <li><a href="#como-funciona">Como funciona</a></li>
-      <li><a href="#recursos">Recursos</a></li>
-      <li><a href="#resultados">Resultados</a></li>
-    </ul>
-    <div class="actions">
-      <a class="plain" href="#entrar">Entrar</a>
-      <a class="btn btn-blue" href="#comecar">Criar meu treino</a>
-    </div>
-  </nav>
-</header>
+<a class="skip-link" href="#conteudo">Pular para o conteúdo</a>
+<header><nav class="wrap" aria-label="Navegação principal">
+  <a class="logo" href="index.html" aria-label="gymAI — início">gym<b>AI</b></a>
+  <button class="nav-toggle btn btn-line" type="button" aria-expanded="false" aria-controls="menu">Menu</button>
+  <ul class="links" id="menu"><li><a href="como-funciona.html">Como funciona</a></li><li><a href="recursos.html">Recursos</a></li><li><a href="index.html#resultados">O projeto</a></li><li class="mobile-account"><a href="entrar.html" data-account-link>Entrar</a></li></ul>
+  <div class="actions"><a class="plain" href="entrar.html" data-account-link>Entrar</a><a class="btn btn-blue" href="cadastro.html" data-signup-link>Criar conta</a></div>
+</nav></header>
 
-<main id="topo">
+<main id="conteudo">
 
   <section class="hero">
     <div class="wrap">
       <div>
         <h1>Treinos feitos sob medida <span>por IA</span></h1>
-        <p class="lead">Conte seu objetivo, seus dias livres e o equipamento que você tem. O gymAI monta o plano completo e ajusta as cargas a cada semana.</p>
+        <p class="lead">Conte seu objetivo, seus dias livres e o equipamento que você tem. Prepare seu perfil no gymAI. A geração de planos por IA faz parte das próximas etapas.</p>
         <div class="cta-row">
-          <a class="btn btn-blue" href="#comecar">Gerar meu primeiro treino</a>
+          <a class="btn btn-blue" href="cadastro.html">Configurar meu perfil</a>
           <a class="btn btn-line" href="#como-funciona">Ver como funciona</a>
         </div>
-        <p class="small">Grátis para começar. Seu plano fica pronto em cerca de 1 minuto.</p>
+        <p class="small">Protótipo acadêmico · Contas e perfis disponíveis nesta etapa.</p>
       </div>
 
-      <div class="phone">
+      <div class="phone" aria-label="Exemplo ilustrativo de um treino futuro">
         <div class="screen">
-          <div class="s-top"><h3>Peito &amp; Tríceps</h3><code>32:14</code></div>
+          <p class="hint preview-note">Prévia ilustrativa · recurso futuro</p><div class="s-top"><h3>Peito &amp; Tríceps</h3><code>32:14</code></div>
           <div class="s-ex">Supino reto com barra</div>
           <div class="sets">
             <span class="th">SÉRIE</span><span class="th">ANTERIOR</span><span class="th">KG</span><span class="th">REPS</span><span class="th"></span>
@@ -64,10 +57,10 @@
 
   <section class="stats" id="resultados">
     <div class="wrap">
-      <div><b>+280 mil</b><span>Treinos gerados</span></div>
-      <div><b>4,8/5</b><span>Avaliação dos usuários</span></div>
-      <div><b>1 min</b><span>Para gerar um plano</span></div>
-      <div><b>92%</b><span>Seguem após 8 semanas</span></div>
+      <div><b>01</b><span>Etapa: conta e perfil</span></div>
+      <div><b>03</b><span>Passos para configurar</span></div>
+      <div><b>Você</b><span>No controle dos seus dados</span></div>
+      <div><b>IA</b><span>Nas próximas etapas</span></div>
     </div>
   </section>
 
@@ -76,8 +69,8 @@
       <div class="show">
         <div class="show-text">
           <h2>Um plano feito para a sua rotina</h2>
-          <p>Responda algumas perguntas e a IA cria seu programa completo, do jeito que você pode treinar de verdade.</p>
-          <ul class="ticks"><li>Considera nível, objetivo e dias livres</li><li>Usa só o equipamento que você tem</li><li>Troca exercícios em caso de lesão</li></ul>
+          <p>O objetivo do projeto é apoiar a criação de programas a partir da sua rotina. O exemplo ao lado ilustra uma funcionalidade futura.</p>
+          <ul class="ticks"><li>Considera nível, objetivo e dias livres</li><li>Usa só o equipamento que você tem</li><li>Registra restrições opcionais para avaliação profissional</li></ul>
         </div>
         <div class="card pad">
           <div class="chips"><span class="on">Hipertrofia</span><span class="on">Intermediário</span><span class="on">4 dias</span><span>Halteres</span><span>Barra</span></div>
@@ -92,8 +85,8 @@
       <div class="show rev">
         <div class="show-text">
           <h2>Veja sua força subir</h2>
-          <p>Cada série registrada alimenta gráficos de volume e recordes. A IA usa esses dados para ajustar a próxima semana.</p>
-          <ul class="ticks"><li>Aviso a cada recorde pessoal</li><li>Volume total por treino e por semana</li><li>Carga sugerida com base no histórico</li></ul>
+          <p>O acompanhamento da evolução está planejado para uma próxima etapa. Os números e gráficos exibidos são apenas ilustrativos.</p>
+          <ul class="ticks"><li>Planejado: registro de recordes pessoais</li><li>Planejado: volume por treino e semana</li><li>Planejado: acompanhamento do histórico</li></ul>
         </div>
         <div class="card pad">
           <span class="big-n">+18%</span>
@@ -109,12 +102,12 @@
     <div class="wrap">
       <div class="head">
         <h2>Como funciona</h2>
-        <p>Três passos entre você e um treino pensado para o seu corpo e a sua rotina.</p>
+        <p>Nesta etapa, prepare sua conta e suas preferências para o futuro do projeto.</p>
       </div>
       <ol class="steps">
-        <li><span class="n">1</span><h3>Conte seu objetivo</h3><p>Hipertrofia, emagrecimento, força ou condicionamento, e quantos dias por semana você treina.</p></li>
-        <li><span class="n">2</span><h3>A IA monta o plano</h3><p>O gymAI cruza seu nível, equipamentos e restrições para montar cada sessão.</p></li>
-        <li><span class="n">3</span><h3>Treine e evolua</h3><p>A cada treino registrado, cargas e volume são reajustados para a semana seguinte.</p></li>
+        <li><span class="n">1</span><h3>Conte seu objetivo</h3><p>Hipertrofia, força, resistência muscular ou condicionamento, e sua experiência.</p></li>
+        <li><span class="n">2</span><h3>Organize sua rotina</h3><p>Informe dias, tempo, local e equipamentos disponíveis.</p></li>
+        <li><span class="n">3</span><h3>Mantenha seu perfil</h3><p>Edite suas preferências quando sua rotina mudar. A geração de treinos virá depois.</p></li>
       </ol>
     </div>
   </section>
@@ -123,14 +116,14 @@
     <div class="wrap">
       <div class="head">
         <h2>Feito para quem treina de verdade</h2>
-        <p>Menos planilha, mais treino.</p>
+        <p>Uma proposta em construção. Os recursos de treino abaixo estão planejados.</p>
       </div>
       <div class="grid">
-        <div class="feat big"><h3>Progressão de carga sem planilha</h3><p>O gymAI acompanha suas execuções e ajusta peso, séries e repetições toda semana, com base no seu desempenho real.</p></div>
-        <div class="feat"><h3>Casa, academia ou ar livre</h3><p>O plano usa só o equipamento que você tem.</p></div>
-        <div class="feat"><h3>Vídeo guiado</h3><p>Demonstração curta em cada exercício.</p></div>
-        <div class="feat"><h3>Adaptação para lesões</h3><p>Avise uma dor e a IA troca os exercícios.</p></div>
-        <div class="feat"><h3>Histórico de evolução</h3><p>Carga total, frequência e recordes pessoais.</p></div>
+        <div class="feat big"><h3>Progressão de carga sem planilha</h3><p>Recurso futuro: acompanhar execuções e apoiar ajustes de peso, séries e repetições, com validação profissional.</p></div>
+        <div class="feat"><h3>Casa, academia ou ar livre</h3><p>Já é possível informar onde você treina e quais equipamentos tem.</p></div>
+        <div class="feat"><h3>Vídeo guiado</h3><p>Planejado: demonstrações de execução dos exercícios.</p></div>
+        <div class="feat"><h3>Cuidados com restrições</h3><p>Limitações podem ser registradas, sem diagnóstico ou substituição de avaliação profissional.</p></div>
+        <div class="feat"><h3>Histórico de evolução</h3><p>Planejado: carga total, frequência e recordes pessoais.</p></div>
       </div>
     </div>
   </section>
@@ -138,26 +131,16 @@
   <section class="cta" id="comecar">
     <div class="wrap">
       <div class="cta-box">
-        <h2>Seu próximo treino já pode estar pronto</h2>
-        <p>Responda 4 perguntas rápidas e receba um plano feito sob medida.</p>
-        <a class="btn" href="#topo">Criar meu treino grátis</a>
+        <h2>Seu próximo passo começa aqui</h2>
+        <p>Crie sua conta e organize suas preferências de treinamento.</p>
+        <a class="btn" href="cadastro.html">Criar minha conta</a>
       </div>
     </div>
   </section>
 
 </main>
 
-<footer id="entrar">
-  <div class="wrap">
-    <a class="logo" href="#topo">gym<b>AI</b></a>
-    <ul>
-      <li><a href="#como-funciona">Como funciona</a></li>
-      <li><a href="#recursos">Recursos</a></li>
-      <li><a href="#entrar">Entrar</a></li>
-      <li><a href="#">Contato</a></li>
-    </ul>
-  </div>
-</footer>
+<footer><div class="wrap"><a class="logo" href="index.html">gym<b>AI</b></a><ul><li><a href="como-funciona.html">Como funciona</a></li><li><a href="recursos.html">Recursos</a></li><li><a href="privacidade.html">Privacidade</a></li><li><a href="termos.html">Termos</a></li><li><a href="contato.html">Contato</a></li></ul><p class="small footer-note">Protótipo acadêmico · Etapa 1 · Sem geração de treinos nesta versão.</p></div></footer>
 
 </body>
 </html>

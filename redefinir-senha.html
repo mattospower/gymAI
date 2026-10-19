@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover"
+    />
+    <title>Nova senha — gymAI</title>
+    <meta
+      name="description"
+      content="GymIA: projeto acadêmico de uma plataforma de musculação com inteligência artificial. Contas e preferências de treinamento."
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Archivo:wght@700;800;900&amp;family=DM+Sans:wght@400;500;600&amp;family=JetBrains+Mono:wght@500&amp;display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="style.css" />
+    <script type="module" src="assets/site.js"></script>
+    <script type="module" src="assets/auth.js"></script>
+  </head>
+  <body>
+    <a class="skip-link" href="#conteudo">Pular para o conteúdo</a>
+    <header>
+      <nav class="wrap" aria-label="Navegação principal">
+        <a class="logo" href="index.html" aria-label="gymAI — início"
+          >gym<b>AI</b></a
+        >
+        <button
+          class="nav-toggle btn btn-line"
+          type="button"
+          aria-expanded="false"
+          aria-controls="menu"
+        >
+          Menu
+        </button>
+        <ul class="links" id="menu">
+          <li><a href="como-funciona.html">Como funciona</a></li>
+          <li><a href="recursos.html">Recursos</a></li>
+          <li><a href="index.html#resultados">O projeto</a></li>
+          <li class="mobile-account">
+            <a href="entrar.html" data-account-link>Entrar</a>
+          </li>
+        </ul>
+        <div class="actions">
+          <a class="plain" href="entrar.html" data-account-link>Entrar</a
+          ><a class="btn btn-blue" href="cadastro.html" data-signup-link
+            >Criar conta</a
+          >
+        </div>
+      </nav>
+    </header>
+    <main id="conteudo">
+      <section class="page-section">
+        <div class="wrap auth-layout">
+          <div class="page-intro">
+            <p class="eyebrow">UM NOVO ACESSO</p>
+            <h1>Escolha sua nova senha.</h1>
+            <p class="lead">
+              O link de recuperação expira em 30 minutos e pode ser usado uma
+              única vez.
+            </p>
+            <p class="small">
+              Seu objetivo, sua rotina, seu ritmo. O primeiro passo é conhecer
+              você.
+            </p>
+          </div>
+          <div class="card form-card">
+            <noscript
+              ><p class="notice">
+                Ative o JavaScript para acessar sua conta. Seus dados precisam
+                ser enviados de forma segura pelo formulário.
+              </p></noscript
+            >
+            <h2>Redefinir senha</h2>
+            <p
+              class="message"
+              data-message
+              role="status"
+              tabindex="-1"
+              hidden
+            ></p>
+            <form method="post" data-auth="reset">
+              <div class="field">
+                <label for="password">Nova senha</label>
+                <div class="password-input">
+                  <input
+                    id="password"
+                    name="password"
+                    type="password"
+                    autocomplete="new-password"
+                    required
+                    minlength="15"
+                    maxlength="128"
+                    aria-describedby="password-help"
+                  /><button
+                    type="button"
+                    class="password-toggle"
+                    data-toggle-password="password"
+                    aria-label="Mostrar nova senha"
+                    aria-pressed="false"
+                  >
+                    Mostrar
+                  </button>
+                </div>
+                <p class="hint" id="password-help">
+                  Use de 15 a 128 caracteres. Você pode usar uma frase longa e
+                  fácil de lembrar.
+                </p>
+              </div>
+              <div class="field">
+                <label for="confirmPassword">Confirme a nova senha</label>
+                <div class="password-input">
+                  <input
+                    id="confirmPassword"
+                    name="confirmPassword"
+                    type="password"
+                    autocomplete="new-password"
+                    required
+                    minlength="15"
+                    maxlength="128"
+                  /><button
+                    type="button"
+                    class="password-toggle"
+                    data-toggle-password="confirmPassword"
+                    aria-label="Mostrar confirme a nova senha"
+                    aria-pressed="false"
+                  >
+                    Mostrar
+                  </button>
+                </div>
+              </div>
+              <button class="btn btn-blue full" type="submit">
+                Salvar nova senha
+              </button>
+            </form>
+            <p class="form-footer">
+              <a href="recuperar-senha.html">Solicitar outro link</a> ·
+              <a href="entrar.html">Entrar</a>
+            </p>
+          </div>
+        </div>
+      </section>
+    </main>
+    <footer>
+      <div class="wrap">
+        <a class="logo" href="index.html">gym<b>AI</b></a>
+        <ul>
+          <li><a href="como-funciona.html">Como funciona</a></li>
+          <li><a href="recursos.html">Recursos</a></li>
+          <li><a href="privacidade.html">Privacidade</a></li>
+          <li><a href="termos.html">Termos</a></li>
+          <li><a href="contato.html">Contato</a></li>
+        </ul>
+        <p class="small footer-note">
+          Protótipo acadêmico · Etapa 1 · Sem geração de treinos nesta versão.
+        </p>
+      </div>
+    </footer>
+  </body>
+</html>

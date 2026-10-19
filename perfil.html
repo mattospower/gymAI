@@ -1,0 +1,392 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover"
+    />
+    <title>Meu perfil — gymAI</title>
+    <meta
+      name="description"
+      content="GymIA: projeto acadêmico de uma plataforma de musculação com inteligência artificial. Contas e preferências de treinamento."
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Archivo:wght@700;800;900&amp;family=DM+Sans:wght@400;500;600&amp;family=JetBrains+Mono:wght@500&amp;display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="style.css" />
+    <script type="module" src="assets/site.js"></script>
+    <script type="module" src="assets/profile.js"></script>
+  </head>
+  <body>
+    <a class="skip-link" href="#conteudo">Pular para o conteúdo</a>
+    <header>
+      <nav class="wrap" aria-label="Navegação principal">
+        <a class="logo" href="index.html" aria-label="gymAI — início"
+          >gym<b>AI</b></a
+        >
+        <button
+          class="nav-toggle btn btn-line"
+          type="button"
+          aria-expanded="false"
+          aria-controls="menu"
+        >
+          Menu
+        </button>
+        <ul class="links" id="menu">
+          <li><a href="como-funciona.html">Como funciona</a></li>
+          <li><a href="recursos.html">Recursos</a></li>
+          <li><a href="index.html#resultados">O projeto</a></li>
+          <li class="mobile-account">
+            <a href="entrar.html" data-account-link>Entrar</a>
+          </li>
+        </ul>
+        <div class="actions">
+          <a class="plain" href="entrar.html" data-account-link>Entrar</a
+          ><a class="btn btn-blue" href="cadastro.html" data-signup-link
+            >Criar conta</a
+          >
+        </div>
+      </nav>
+    </header>
+    <main id="conteudo">
+      <section class="page-section">
+        <div class="wrap">
+          <div class="page-heading heading-row">
+            <div>
+              <p class="eyebrow">SEU ESPAÇO NO GYMAI</p>
+              <h1>Meu perfil</h1>
+              <p class="lead">Sua conta e suas preferências, sempre à mão.</p>
+            </div>
+            <button class="btn btn-line" type="button" data-logout>
+              Sair da conta
+            </button>
+          </div>
+          <noscript
+            ><p class="notice">
+              Ative o JavaScript para preencher e salvar seu perfil.
+            </p></noscript
+          >
+          <p data-loading role="status">Carregando seu perfil…</p>
+          <div data-private-content hidden>
+            <div class="profile-layout">
+              <aside class="card form-card account-card">
+                <p class="eyebrow">MINHA CONTA</p>
+                <h2 data-user-name></h2>
+                <dl class="account-info">
+                  <dt>E-mail</dt>
+                  <dd data-user-email></dd>
+                  <dt>Conta criada em</dt>
+                  <dd data-user-created></dd>
+                </dl>
+                <a class="btn btn-line full" href="#editar"
+                  >Editar preferências</a
+                >
+                <p class="small">
+                  Seus dados são acessíveis somente pela sua conta nesta
+                  aplicação.
+                </p>
+              </aside>
+              <div class="profile-main">
+                <section
+                  class="card form-card"
+                  aria-labelledby="preferences-title"
+                >
+                  <div class="section-heading">
+                    <h2 id="preferences-title">Preferências de treinamento</h2>
+                    <span class="tag">Perfil salvo</span>
+                  </div>
+                  <dl class="summary-grid">
+                    <div>
+                      <dt>Objetivo</dt>
+                      <dd data-summary="goal"></dd>
+                    </div>
+                    <div>
+                      <dt>Experiência</dt>
+                      <dd data-summary="experience"></dd>
+                    </div>
+                    <div>
+                      <dt>Disponibilidade</dt>
+                      <dd data-summary="availability"></dd>
+                    </div>
+                    <div>
+                      <dt>Local</dt>
+                      <dd data-summary="location"></dd>
+                    </div>
+                    <div class="wide">
+                      <dt>Equipamentos</dt>
+                      <dd data-summary="equipment"></dd>
+                    </div>
+                  </dl>
+                  <details class="sensitive-details">
+                    <summary>Ver limitações informadas</summary>
+                    <p data-summary="limitations"></p>
+                  </details>
+                  <p class="hint" data-updated></p>
+                </section>
+                <section class="notice">
+                  <strong>O próximo passo vem depois.</strong>
+                  <p>
+                    Histórico, gráficos e planos gerados por IA fazem parte das
+                    próximas etapas do projeto. Nesta versão, você já pode
+                    organizar seu perfil.
+                  </p>
+                </section>
+                <details class="card form-card edit-card" id="editar">
+                  <summary>Editar preferências</summary>
+                  <p
+                    class="message"
+                    data-message
+                    role="status"
+                    tabindex="-1"
+                    hidden
+                  ></p>
+                  <form method="post" id="profile-form" novalidate>
+                    <fieldset>
+                      <legend>Objetivo e experiência</legend>
+                      <div class="form-grid">
+                        <div class="field">
+                          <label for="goal">Objetivo do treinamento</label
+                          ><select id="goal" name="goal" required>
+                            <option value="">Selecione</option>
+                            <option value="hipertrofia">Hipertrofia</option>
+                            <option value="forca">Força</option>
+                            <option value="resistencia">
+                              Resistência muscular
+                            </option>
+                            <option value="condicionamento">
+                              Condicionamento físico
+                            </option>
+                          </select>
+                        </div>
+                        <div class="field">
+                          <label for="experience">Experiência</label
+                          ><select id="experience" name="experience" required>
+                            <option value="">Selecione</option>
+                            <option value="iniciante">Iniciante</option>
+                            <option value="intermediario">Intermediário</option>
+                            <option value="avancado">Avançado</option>
+                          </select>
+                        </div>
+                      </div>
+                    </fieldset>
+                    <fieldset>
+                      <legend>Disponibilidade e equipamentos</legend>
+                      <div class="form-grid">
+                        <div class="field">
+                          <label for="days">Dias disponíveis por semana</label
+                          ><select id="days" name="days" required>
+                            <option value="">Selecione</option>
+                            <option value="1">1 dia</option>
+                            <option value="2">2 dias</option>
+                            <option value="3">3 dias</option>
+                            <option value="4">4 dias</option>
+                            <option value="5">5 dias</option>
+                            <option value="6">6 dias</option>
+                            <option value="7">7 dias</option>
+                          </select>
+                        </div>
+                        <div class="field">
+                          <label for="minutes">Tempo por sessão</label
+                          ><select id="minutes" name="minutes" required>
+                            <option value="">Selecione</option>
+                            <option value="15">15 minutos</option>
+                            <option value="30">30 minutos</option>
+                            <option value="45">45 minutos</option>
+                            <option value="60">60 minutos</option>
+                            <option value="90">90 minutos</option>
+                            <option value="120">120 minutos</option>
+                            <option value="150">150 minutos</option>
+                            <option value="180">180 minutos</option>
+                          </select>
+                        </div>
+                      </div>
+                      <div class="field">
+                        <label for="location">Local do treinamento</label
+                        ><select id="location" name="location" required>
+                          <option value="">Selecione</option>
+                          <option value="academia">Academia</option>
+                          <option value="casa">Casa</option>
+                          <option value="outro">Outro ambiente</option>
+                        </select>
+                      </div>
+                      <fieldset class="equipment">
+                        <legend>
+                          Equipamentos disponíveis
+                          <span class="hint">(selecione pelo menos um)</span>
+                        </legend>
+                        <div class="choice-grid">
+                          <label class="choice"
+                            ><input
+                              type="checkbox"
+                              name="equipment"
+                              value="halteres"
+                            /><span>Halteres</span></label
+                          ><label class="choice"
+                            ><input
+                              type="checkbox"
+                              name="equipment"
+                              value="barras"
+                            /><span>Barras</span></label
+                          ><label class="choice"
+                            ><input
+                              type="checkbox"
+                              name="equipment"
+                              value="maquinas"
+                            /><span>Máquinas</span></label
+                          ><label class="choice"
+                            ><input
+                              type="checkbox"
+                              name="equipment"
+                              value="elasticos"
+                            /><span>Elásticos</span></label
+                          ><label class="choice"
+                            ><input
+                              type="checkbox"
+                              name="equipment"
+                              value="peso-corporal"
+                            /><span>Peso corporal</span></label
+                          ><label class="choice"
+                            ><input
+                              type="checkbox"
+                              name="equipment"
+                              value="outros"
+                            /><span>Outros</span></label
+                          >
+                        </div>
+                        <p class="hint" data-equipment-error hidden>
+                          Selecione pelo menos um equipamento.
+                        </p>
+                      </fieldset>
+                      <div class="field" data-other-equipment hidden>
+                        <label for="otherEquipment"
+                          >Quais outros equipamentos?</label
+                        ><input
+                          id="otherEquipment"
+                          name="otherEquipment"
+                          maxlength="200"
+                        />
+                      </div>
+                    </fieldset>
+                    <fieldset>
+                      <legend>Limitações e privacidade</legend>
+                      <div class="notice">
+                        <strong>Compartilhe apenas o necessário.</strong>
+                        <p>
+                          Este campo é opcional. O gymAI não diagnostica lesões
+                          nem substitui a avaliação de um profissional de saúde
+                          ou de Educação Física.
+                        </p>
+                      </div>
+                      <div class="field">
+                        <label for="limitations"
+                          >Limitações físicas ou restrições (opcional)</label
+                        ><textarea
+                          id="limitations"
+                          name="limitations"
+                          rows="4"
+                          maxlength="2000"
+                          aria-describedby="limitations-help"
+                        ></textarea>
+                        <p id="limitations-help" class="hint">
+                          Até 2.000 caracteres. As informações ficam no seu
+                          perfil e podem ser removidas a qualquer momento.
+                        </p>
+                      </div>
+                      <label class="check" data-sensitive-consent hidden
+                        ><input id="sensitiveConsent" type="checkbox" /><span
+                          >Autorizo o armazenamento das limitações que informei
+                          para compor meu perfil de treinamento, conforme a
+                          <a
+                            href="privacidade.html"
+                            target="_blank"
+                            rel="noopener"
+                            >política de privacidade</a
+                          >. Posso retirar esta autorização apagando o campo e
+                          salvando.</span
+                        ></label
+                      >
+                    </fieldset>
+                    <button class="btn btn-blue" type="submit">
+                      Salvar alterações
+                    </button>
+                  </form>
+                </details>
+                <details class="card form-card delete-card">
+                  <summary>Excluir minha conta</summary>
+                  <p>
+                    A exclusão remove sua conta, preferências e sessões desta
+                    instalação. Esta ação não pode ser desfeita.
+                  </p>
+                  <p
+                    class="message"
+                    data-delete-message
+                    role="status"
+                    tabindex="-1"
+                    hidden
+                  ></p>
+                  <form method="post" id="delete-form">
+                    <div class="field">
+                      <label for="deletePassword">Senha atual</label>
+                      <div class="password-input">
+                        <input
+                          id="deletePassword"
+                          name="deletePassword"
+                          type="password"
+                          autocomplete="current-password"
+                          required
+                          minlength="1"
+                          maxlength="128"
+                        /><button
+                          type="button"
+                          class="password-toggle"
+                          data-toggle-password="deletePassword"
+                          aria-label="Mostrar senha atual"
+                          aria-pressed="false"
+                        >
+                          Mostrar
+                        </button>
+                      </div>
+                    </div>
+                    <div class="field">
+                      <label for="confirmation"
+                        >Digite EXCLUIR para confirmar</label
+                      ><input
+                        id="confirmation"
+                        name="confirmation"
+                        autocomplete="off"
+                        pattern="EXCLUIR"
+                        required
+                      />
+                    </div>
+                    <button class="btn btn-line" type="submit">
+                      Excluir conta e dados
+                    </button>
+                  </form>
+                </details>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+    <footer>
+      <div class="wrap">
+        <a class="logo" href="index.html">gym<b>AI</b></a>
+        <ul>
+          <li><a href="como-funciona.html">Como funciona</a></li>
+          <li><a href="recursos.html">Recursos</a></li>
+          <li><a href="privacidade.html">Privacidade</a></li>
+          <li><a href="termos.html">Termos</a></li>
+          <li><a href="contato.html">Contato</a></li>
+        </ul>
+        <p class="small footer-note">
+          Protótipo acadêmico · Etapa 1 · Sem geração de treinos nesta versão.
+        </p>
+      </div>
+    </footer>
+  </body>
+</html>
