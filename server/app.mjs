@@ -4,6 +4,8 @@ import { randomUUID, createHmac } from "node:crypto";
 import { fileURLToPath } from "node:url";
 import { openStore, transaction } from "./store.mjs";
 import { trainingRoutes, isTrainingPath } from "./training.mjs";
+import { evolutionRoutes, isEvolutionPath } from "./evolution.mjs";
+import { aiRoutes, createProvider } from "./ai.mjs";
 import {
   HttpError,
   token,
@@ -55,6 +57,16 @@ const privatePages = new Set([
   "sessao-treino.html",
   "historico.html",
 ]);
+for (const page of [
+  "calendario.html",
+  "evolucao.html",
+  "assistente.html",
+  "configuracoes.html",
+]) {
+  publicFiles.add(page);
+  privatePages.add(page);
+}
+publicFiles.add("assets/evolution.js");
 const mime = {
   html: "text/html; charset=utf-8",
   css: "text/css; charset=utf-8",
@@ -73,6 +85,7 @@ export function createApp({
   production = false,
   sendRecovery = null,
   now = Date.now,
+  aiProvider = createProvider(),
 }) {
   const canonical = new URL(origin);
   if (
@@ -201,6 +214,18 @@ export function createApp({
     }
   };
 
+  const evolution = evolutionRoutes({ db, key, now, training });
+  const assistant = aiRoutes({
+    db,
+    key,
+    now,
+    provider: aiProvider,
+    preferences: evolution.preferences,
+    training,
+    limit,
+    hashed,
+  });
+
   const server = createServer(async (req, res) => {
     res.setHeader("Cache-Control", "no-store");
     res.setHeader("X-Content-Type-Options", "nosniff");
@@ -241,6 +266,29 @@ export function createApp({
             profile: row ? decrypt(row.payload, key, user.id) : null,
             updatedAt: row ? new Date(row.updated_at).toISOString() : null,
           });
+        }
+        if (isEvolutionPath(path) || path.startsWith("/api/ai/")) {
+          const user = requireUser(req);
+          limit(`evolution:${hashed(user.id)}`, 300, 15 * 60 * 1000);
+          if (path === "/api/export")
+            limit(`export:${hashed(user.id)}`, 5, 3600000);
+          let input = {};
+          if (req.method !== "GET") {
+            if (!["POST", "PUT", "DELETE"].includes(req.method))
+              throw new HttpError(405, "Método não permitido.");
+            input = await body(req, 32768);
+          }
+          const result = path.startsWith("/api/ai/")
+            ? await assistant(req.method, url, requireUser(req), input, () =>
+                requireUser(req),
+              )
+            : evolution.dispatch(req.method, url, requireUser(req), input);
+          if (path === "/api/export")
+            res.setHeader(
+              "Content-Disposition",
+              'attachment; filename="gymia-dados.json"',
+            );
+          return json(res, 200, result);
         }
         if (isTrainingPath(path)) {
           const user = requireUser(req);

@@ -126,6 +126,84 @@ export const exercises = [
     source: ace(322, "standing-bicep-curl"),
   },
 ];
+exercises.push(
+  {
+    id: "barra-fixa",
+    name: "Barra fixa com pegada supinada",
+    region: "Costas e braços",
+    equipment: ["barras"],
+    equipmentText: "Barra fixa instalada e adequada ao peso do usuário",
+    category: "Puxar",
+    description:
+      "Elevação do corpo em direção à barra, com as palmas voltadas para você.",
+    guidance:
+      "Confira a fixação da barra. Suba e desça com controle, sem balanços. Peça orientação para uma adaptação se não conseguir sustentar o movimento.",
+    source: ace(190, "chin-ups"),
+  },
+  {
+    id: "avanco-barra",
+    name: "Avanço com barra",
+    region: "Coxas e glúteos",
+    equipment: ["barras"],
+    equipmentText: "Barra e espaço livre",
+    category: "Passada",
+    description:
+      "Passo à frente com flexão dos joelhos e retorno à posição em pé.",
+    guidance:
+      "Aprenda a posição da barra com orientação. Use espaço livre, mantenha equilíbrio e controle o retorno, sem impacto do joelho no chão.",
+    source: ace(8, "forward-lunge"),
+  },
+  {
+    id: "bear-crawl",
+    name: "Deslocamento em quatro apoios",
+    region: "Tronco, ombros e pernas",
+    equipment: ["peso-corporal"],
+    equipmentText: "Peso corporal e piso estável",
+    category: "Estabilidade",
+    description:
+      "Deslocamento alternando mãos e pés, com o corpo próximo ao chão.",
+    guidance:
+      "Mova-se lentamente em área livre. Mantenha o tronco estável e evite prender a respiração ou continuar com dor nos punhos.",
+    source: ace(150, "bear-crawl"),
+  },
+  {
+    id: "alongamento-costas",
+    name: "Alongamento de costas com apoio",
+    region: "Costas e ombros",
+    equipment: ["peso-corporal"],
+    equipmentText: "Apoio fixo e estável na altura dos quadris",
+    category: "Mobilidade",
+    description:
+      "Inclinação do tronco com as mãos apoiadas à frente para alongar as costas.",
+    guidance:
+      "Verifique a estabilidade do apoio. Recue os quadris suavemente, sem forçar os ombros ou buscar uma amplitude dolorosa.",
+    source: ace(198, "90-lat-stretch"),
+  },
+  {
+    id: "agachamento-barra",
+    name: "Agachamento com barra nas costas",
+    region: "Coxas e glúteos",
+    equipment: ["barras"],
+    equipmentText: "Barra, suporte e travas de segurança",
+    category: "Agachar",
+    description: "Agachamento com barra apoiada na região superior das costas.",
+    guidance:
+      "Aprenda a montagem com um profissional e use suportes de segurança. Mantenha os pés apoiados e controle o movimento em amplitude confortável.",
+    source: ace(11, "back-squat"),
+  },
+  {
+    id: "flexao-tornozelo",
+    name: "Flexão de tornozelo com elástico",
+    region: "Pernas e tornozelos",
+    equipment: ["elasticos"],
+    equipmentText: "Elástico de resistência e apoio firme",
+    category: "Tornozelos",
+    description: "Movimento do tornozelo contra a resistência de um elástico.",
+    guidance:
+      "Confira a integridade e a fixação do elástico. Mova o pé lentamente, mantendo a perna apoiada e evitando esticar o elástico em direção ao rosto.",
+    source: ace(23, "ankle-flexion"),
+  },
+);
 export const exerciseById = new Map(
   exercises.map((exercise) => [exercise.id, exercise]),
 );

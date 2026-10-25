@@ -8,7 +8,7 @@ export function openStore(path, key) {
     mkdirSync(dirname(path), { recursive: true, mode: 0o700 });
   const db = new DatabaseSync(path, { timeout: 5000 });
   const version = db.prepare("PRAGMA user_version").get().user_version;
-  if (version > 2) {
+  if (version > 3) {
     db.close();
     throw new Error("Banco criado por uma versão mais recente do GymIA.");
   }
@@ -56,9 +56,10 @@ export function openStore(path, key) {
       encrypt("gymia", key, "gymia-key-check"),
     );
   }
-  if (version < 2)
-    transaction(db, () =>
-      db.exec(`
+  try {
+    if (version < 2)
+      transaction(db, () =>
+        db.exec(`
     CREATE TABLE IF NOT EXISTS training_plans (
       id TEXT PRIMARY KEY, user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
       status TEXT NOT NULL CHECK(status IN ('saved','active','archived')), payload TEXT NOT NULL,
@@ -76,7 +77,32 @@ export function openStore(path, key) {
     CREATE INDEX IF NOT EXISTS workouts_owner_date ON workout_logs(user_id,started_at);
     PRAGMA user_version = 2;
   `),
+      );
+    if (version < 3)
+      transaction(db, () =>
+        db.exec(`
+    CREATE TABLE user_preferences (
+      user_id TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+      payload TEXT NOT NULL, version INTEGER NOT NULL DEFAULT 1, updated_at INTEGER NOT NULL
     );
+    CREATE TABLE calendar_events (
+      id TEXT PRIMARY KEY, user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      date TEXT NOT NULL, payload TEXT NOT NULL, version INTEGER NOT NULL DEFAULT 1,
+      created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL
+    );
+    CREATE INDEX calendar_owner_date ON calendar_events(user_id,date);
+    CREATE TABLE ai_drafts (
+      id TEXT PRIMARY KEY, user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      payload TEXT NOT NULL, created_at INTEGER NOT NULL, expires_at INTEGER NOT NULL
+    );
+    CREATE INDEX drafts_owner ON ai_drafts(user_id,expires_at);
+    PRAGMA user_version = 3;
+  `),
+      );
+  } catch (error) {
+    db.close();
+    throw error;
+  }
   return db;
 }
 

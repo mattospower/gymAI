@@ -286,17 +286,17 @@ test("Planos manuais, execução parcial, histórico e layouts da Etapa 2", asyn
     await page
       .getByLabel("Equipamento", { exact: true })
       .selectOption("elasticos");
-    await expect(page.locator(".exercise-card")).toHaveCount(1);
+    await expect(page.locator(".exercise-card")).toHaveCount(2);
     await page.getByLabel("Equipamento", { exact: true }).selectOption("");
     await page.getByLabel("Categoria", { exact: true }).selectOption("Agachar");
-    await expect(page.locator(".exercise-card")).toHaveCount(1);
+    await expect(page.locator(".exercise-card")).toHaveCount(2);
     await page.getByLabel("Categoria", { exact: true }).selectOption("");
     await page
       .getByLabel("Usar equipamentos do meu perfil (inclui peso corporal)", {
         exact: true,
       })
       .check();
-    await expect(page.locator(".exercise-card")).toHaveCount(7);
+    await expect(page.locator(".exercise-card")).toHaveCount(9);
     const plans = (await (await page.request.get(origin + "/api/plans")).json())
       .plans;
     const remaining = plans.find((p) => p.name === copied);

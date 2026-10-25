@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover"
+    />
+    <title>Assistente GymIA — gymAI</title>
+    <meta
+      name="description"
+      content="GymIA: projeto acadêmico de uma plataforma de musculação com inteligência artificial. Contas e preferências de treinamento."
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Archivo:wght@700;800;900&amp;family=DM+Sans:wght@400;500;600&amp;family=JetBrains+Mono:wght@500&amp;display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="style.css" />
+    <script type="module" src="assets/site.js"></script>
+    <script type="module" src="assets/evolution.js"></script>
+  </head>
+  <body>
+    <a class="skip-link" href="#conteudo">Pular para o conteúdo</a>
+    <header>
+      <nav class="wrap" aria-label="Navegação principal">
+        <a class="logo" href="index.html" aria-label="gymAI — início"
+          >gym<b>AI</b></a
+        >
+        <button
+          class="nav-toggle btn btn-line"
+          type="button"
+          aria-expanded="false"
+          aria-controls="menu"
+        >
+          Menu
+        </button>
+        <ul class="links" id="menu">
+          <li><a href="treinos.html">Treinos</a></li>
+          <li><a href="como-funciona.html">Como funciona</a></li>
+          <li><a href="recursos.html">Recursos</a></li>
+          <li><a href="index.html#resultados">O projeto</a></li>
+          <li class="mobile-account">
+            <a href="entrar.html" data-account-link>Entrar</a>
+          </li>
+        </ul>
+        <div class="actions">
+          <a class="plain" href="entrar.html" data-account-link>Entrar</a
+          ><a class="btn btn-blue" href="cadastro.html" data-signup-link
+            >Criar conta</a
+          >
+        </div>
+      </nav>
+    </header>
+    <main id="conteudo" data-evolution="assistant">
+      <section class="page-section">
+        <div class="wrap">
+          <div class="page-heading">
+            <p class="eyebrow">ETAPA 3 · SEU TREINAMENTO</p>
+            <h1>Assistente GymIA</h1>
+            <p class="lead">
+              Tire dúvidas e revise a organização dos seus treinos.
+            </p>
+          </div>
+          <nav class="training-tabs" aria-label="Seu treinamento">
+            <a href="treinos.html">Meus treinos</a
+            ><a href="exercicios.html">Biblioteca</a
+            ><a href="historico.html">Histórico</a
+            ><a href="calendario.html">Calendário</a
+            ><a href="evolucao.html">Evolução</a
+            ><a href="assistente.html">Assistente</a
+            ><a href="configuracoes.html">Configurações</a
+            ><a href="perfil.html">Meu perfil</a>
+          </nav>
+          <p
+            class="message"
+            data-message
+            role="status"
+            tabindex="-1"
+            hidden
+          ></p>
+          <p data-loading role="status">Carregando…</p>
+          <noscript
+            ><p class="notice">
+              Ative o JavaScript para usar esta funcionalidade.
+            </p></noscript
+          >
+          <div id="evolution-content" class="training-list" hidden></div>
+        </div>
+      </section>
+    </main>
+    <footer>
+      <div class="wrap">
+        <a class="logo" href="index.html">gym<b>AI</b></a>
+        <ul>
+          <li><a href="como-funciona.html">Como funciona</a></li>
+          <li><a href="recursos.html">Recursos</a></li>
+          <li><a href="privacidade.html">Privacidade</a></li>
+          <li><a href="termos.html">Termos</a></li>
+          <li><a href="contato.html">Contato</a></li>
+        </ul>
+        <p class="small footer-note">
+          Protótipo acadêmico · Etapa 3 · IA externa opcional; revisão
+          obrigatória.
+        </p>
+      </div>
+    </footer>
+  </body>
+</html>

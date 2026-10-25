@@ -80,7 +80,7 @@ export function library(container, catalog, profile, onSelect) {
   const query = node("input", {
     id: `${container.id}-search`,
     type: "search",
-    placeholder: "Pesquisar pelo nome",
+    placeholder: "Nome, região ou categoria",
   });
   const equipment = node(
     "select",
@@ -103,12 +103,21 @@ export function library(container, catalog, profile, onSelect) {
     id: `${container.id}-mine`,
     disabled: !profile,
   });
+  const region = node(
+    "select",
+    { id: `${container.id}-region` },
+    node("option", { value: "" }, "Todas as regiões"),
+    [...new Set(catalog.map((e) => e.region))]
+      .sort()
+      .map((value) => node("option", { value }, value)),
+  );
   const count = node("p", { class: "small", role: "status" }),
     list = node("div", { class: "exercise-grid" });
   const controls = [
     ["Pesquisar exercício", query],
     ["Equipamento", equipment],
     ["Categoria", category],
+    ["Região", region],
   ].map(([label, input]) =>
     node(
       "div",
@@ -140,7 +149,10 @@ export function library(container, catalog, profile, onSelect) {
         .toLowerCase();
     const matches = catalog.filter(
       (e) =>
-        normalize(e.name).includes(normalize(query.value)) &&
+        normalize(`${e.name} ${e.region} ${e.category}`).includes(
+          normalize(query.value),
+        ) &&
+        (!region.value || region.value === e.region) &&
         (!equipment.value || e.equipment.includes(equipment.value)) &&
         (!category.value || category.value === e.category) &&
         (!mine.checked ||
@@ -186,7 +198,7 @@ export function library(container, catalog, profile, onSelect) {
         ),
       );
   }
-  [query, equipment, category, mine].forEach((input) =>
+  [query, equipment, category, region, mine].forEach((input) =>
     input.addEventListener(input === query ? "input" : "change", render),
   );
   render();
