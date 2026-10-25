@@ -2,35 +2,13 @@ import { randomUUID } from "node:crypto";
 import { HttpError, text, encrypt, decrypt } from "./security.mjs";
 import { exerciseById } from "./exercises.mjs";
 
-const dayMs = 86400000;
+import { dayMs, validDate, localDay, shiftDate, range } from "./dates.mjs";
+import { calendarRoutes } from "./calendar.mjs";
+import { reportResult } from "./reports.mjs";
+export { validDate, localDay, shiftDate } from "./dates.mjs";
 const bad = (message) => {
   throw new HttpError(400, message);
 };
-export function validDate(value) {
-  if (
-    typeof value !== "string" ||
-    !/^\d{4}-\d{2}-\d{2}$/.test(value) ||
-    !Number.isFinite(Date.parse(value)) ||
-    new Date(value).toISOString().slice(0, 10) !== value
-  )
-    bad("Informe uma data válida.");
-  return value;
-}
-export const shiftDate = (value, days) =>
-  new Date(Date.parse(value) + days * dayMs).toISOString().slice(0, 10);
-export function localDay(value, timeZone) {
-  const p = Object.fromEntries(
-    new Intl.DateTimeFormat("en-US", {
-      timeZone,
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-    })
-      .formatToParts(value)
-      .map((p) => [p.type, p.value]),
-  );
-  return `${p.year}-${p.month}-${p.day}`;
-}
 export function evolutionRoutes({ db, key, now, training }) {
   const preferences = (id) => {
     const row = db
@@ -51,14 +29,6 @@ export function evolutionRoutes({ db, key, now, training }) {
           version: 0,
         };
   };
-  const unpackEvent = (row) => ({
-    id: row.id,
-    date: row.date,
-    version: row.version,
-    createdAt: row.created_at,
-    updatedAt: row.updated_at,
-    ...decrypt(row.payload, key, `calendar:${row.user_id}:${row.id}`),
-  });
   const unpackWorkout = (row) => ({
     id: row.id,
     planId: row.plan_ref,
@@ -68,34 +38,29 @@ export function evolutionRoutes({ db, key, now, training }) {
     finishedAt: row.finished_at,
     ...decrypt(row.payload, key, `workout:${row.user_id}:${row.id}`),
   });
-  const workouts = (id) =>
+  const workouts = (id, from, to, planId = "") =>
     db
       .prepare(
-        "SELECT * FROM workout_logs WHERE user_id=? ORDER BY started_at,id",
+        "SELECT * FROM workout_logs WHERE user_id=? AND started_at>=? AND started_at<? AND (?='' OR plan_ref=?) ORDER BY started_at,id",
       )
-      .all(id)
+      .all(
+        id,
+        from ? Date.parse(from) - 2 * dayMs : 0,
+        to ? Date.parse(to) + 3 * dayMs : Number.MAX_SAFE_INTEGER,
+        planId,
+        planId,
+      )
       .map(unpackWorkout);
-  const events = (id) =>
-    db
-      .prepare("SELECT * FROM calendar_events WHERE user_id=? ORDER BY date,id")
-      .all(id)
-      .map(unpackEvent);
+  const calendar = calendarRoutes({ db, key, now, training, preferences });
+  const events = (id) => calendar.list(id);
   const plan = (id, user) =>
-    training("GET", new URL(`http://local/api/plans/${id}`), user).plan;
-  const getRange = (url, prefs, maximum = 366) => {
-    const to = validDate(
-      url.searchParams.get("to") || localDay(now(), prefs.timeZone),
-    );
-    const from = validDate(url.searchParams.get("from") || shiftDate(to, -29));
-    const days = (Date.parse(to) - Date.parse(from)) / dayMs + 1;
-    if (days < 1 || days > maximum)
-      bad(`Escolha um período de 1 a ${maximum} dias.`);
-    return { from, to, days };
-  };
-  function aggregate(rows, from, to, prefs, exerciseId, status) {
+    training("GET", new URL("http://local/api/plans/" + id), user).plan;
+  const getRange = (url, prefs) => range(url, prefs, now);
+  function aggregate(rows, from, to, prefs, exerciseId, status, planId) {
     const filtered = rows.filter(
       (w) =>
         w.status !== "in_progress" &&
+        (!planId || w.planId === planId) &&
         (!status || w.status === status) &&
         (!exerciseId ||
           w.snapshot.exercises.some((e) => e.exerciseId === exerciseId)) &&
@@ -246,14 +211,42 @@ export function evolutionRoutes({ db, key, now, training }) {
           .all(user.id)
           .map((r) => [r.status, r.n]),
       );
-      const next = db
+      const upcoming = calendar
+        .list(user.id, localDay(now(), prefs.timeZone))
+        .filter((e) => !e.workoutId)
+        .slice(0, 5);
+      const today = localDay(now(), prefs.timeZone),
+        weekFrom = shiftDate(
+          today,
+          -((new Date(today).getUTCDay() - prefs.weekStart + 7) % 7),
+        ),
+        weekTo = shiftDate(weekFrom, 6);
+      const week = aggregate(
+        workouts(user.id, weekFrom, weekTo),
+        weekFrom,
+        weekTo,
+        prefs,
+        "",
+        "",
+      );
+      const runningRow = db
         .prepare(
-          "SELECT * FROM calendar_events WHERE user_id=? AND date>=? ORDER BY date,id LIMIT 1",
+          "SELECT * FROM workout_logs WHERE user_id=? AND status='in_progress'",
         )
-        .get(user.id, localDay(now(), prefs.timeZone));
+        .get(user.id);
       return {
         activePlan: active ? plan(active.id, user) : null,
-        nextSession: next ? unpackEvent(next) : null,
+        nextSession: upcoming[0] || null,
+        upcoming,
+        week: {
+          from: weekFrom,
+          to: weekTo,
+          total: week.total,
+          completed: week.completed,
+          partial: week.partial,
+          daysRecorded: week.daysRecorded,
+        },
+        running: runningRow ? unpackWorkout(runningRow) : null,
         completed: counts.completed || 0,
         partial: counts.partial || 0,
         recent: db
@@ -267,21 +260,23 @@ export function evolutionRoutes({ db, key, now, training }) {
     if (path === "/api/statistics" && method === "GET") {
       const { from, to, days } = getRange(url, prefs),
         exerciseId = url.searchParams.get("exerciseId") || "",
-        status = url.searchParams.get("status") || "";
+        status = url.searchParams.get("status") || "",
+        planId = url.searchParams.get("planId") || "";
+      if (planId && !/^[0-9a-f-]{36}$/i.test(planId)) bad("Plano inválido.");
       if (exerciseId && !exerciseById.has(exerciseId))
         bad("Exercício inválido.");
       if (status && !["completed", "partial"].includes(status))
         bad("Estado inválido.");
-      const rows = workouts(user.id),
-        previousFrom = shiftDate(from, -days),
-        previousTo = shiftDate(from, -1);
+      const previousFrom = shiftDate(from, -days),
+        previousTo = shiftDate(from, -1),
+        rows = workouts(user.id, previousFrom, to);
       return {
         from,
         to,
         timeZone: prefs.timeZone,
         previousFrom,
         previousTo,
-        current: aggregate(rows, from, to, prefs, exerciseId, status),
+        current: aggregate(rows, from, to, prefs, exerciseId, status, planId),
         previous: aggregate(
           rows,
           previousFrom,
@@ -289,102 +284,105 @@ export function evolutionRoutes({ db, key, now, training }) {
           prefs,
           exerciseId,
           status,
+          planId,
         ),
       };
     }
+    if (path === "/api/reports" && method === "GET") {
+      const { from, to, days } = getRange(url, prefs),
+        previousFrom = shiftDate(from, -days),
+        previousTo = shiftDate(from, -1);
+      const planId = url.searchParams.get("planId") || "",
+        status = url.searchParams.get("status") || "",
+        exerciseId = url.searchParams.get("exerciseId") || "";
+      if (planId && !/^[0-9a-f-]{36}$/i.test(planId)) bad("Plano inválido.");
+      if (status && !["completed", "partial"].includes(status))
+        bad("Estado inválido.");
+      if (exerciseId && !exerciseById.has(exerciseId))
+        bad("Exercício inválido.");
+      const size = db
+        .prepare(
+          "SELECT count(*) n,coalesce(sum(length(payload)),0) bytes FROM workout_logs WHERE user_id=? AND started_at>=? AND started_at<? AND (?='' OR plan_ref=?)",
+        )
+        .get(
+          user.id,
+          Date.parse(previousFrom) - 2 * dayMs,
+          Date.parse(to) + 3 * dayMs,
+          planId,
+          planId,
+        );
+      if (size.n > 5000 || size.bytes > 32 * 1024 * 1024)
+        throw new HttpError(
+          413,
+          "Este período tem muitos registros. Reduza o intervalo do relatório.",
+        );
+      const raw = workouts(user.id, previousFrom, to, planId);
+      const current = aggregate(
+          raw,
+          from,
+          to,
+          prefs,
+          exerciseId,
+          status,
+          planId,
+        ),
+        previous = aggregate(
+          raw,
+          previousFrom,
+          previousTo,
+          prefs,
+          exerciseId,
+          status,
+          planId,
+        );
+      const rows = raw.filter(
+        (w) =>
+          w.status !== "in_progress" &&
+          localDay(w.startedAt, prefs.timeZone) >= from &&
+          localDay(w.startedAt, prefs.timeZone) <= to &&
+          (!planId || w.planId === planId) &&
+          (!status || w.status === status) &&
+          (!exerciseId ||
+            w.snapshot.exercises.some((e) => e.exerciseId === exerciseId)),
+      );
+      return reportResult(
+        url,
+        {
+          from,
+          to,
+          timeZone: prefs.timeZone,
+          previousFrom,
+          previousTo,
+          current,
+          previous,
+        },
+        rows,
+        exerciseId,
+      );
+    }
     if (path === "/api/calendar" && method === "GET") {
-      const { from, to } = getRange(url, prefs);
+      const { from, to } = getRange(url, prefs),
+        planId = url.searchParams.get("planId") || "";
+      if (planId && !/^[0-9a-f-]{36}$/i.test(planId)) bad("Plano inválido.");
       return {
         timeZone: prefs.timeZone,
-        events: events(user.id).filter((e) => e.date >= from && e.date <= to),
-        workouts: workouts(user.id)
+        events: calendar.list(user.id, from, to, planId),
+        workouts: workouts(user.id, from, to)
           .filter((w) => {
             const d = localDay(w.startedAt, prefs.timeZone);
-            return d >= from && d <= to;
+            return d >= from && d <= to && (!planId || w.planId === planId);
           })
           .map((w) => ({ ...w, date: localDay(w.startedAt, prefs.timeZone) })),
       };
     }
-    const eventMatch = path.match(/^\/api\/calendar\/([0-9a-f-]{36})$/i);
-    if ((path === "/api/calendar" && method === "POST") || eventMatch) {
-      const row = eventMatch
-        ? db
-            .prepare("SELECT * FROM calendar_events WHERE id=? AND user_id=?")
-            .get(eventMatch[1], user.id)
-        : null;
-      if (eventMatch && !row)
-        throw new HttpError(404, "Agendamento não encontrado.");
-      if (row && input.version !== row.version)
-        throw new HttpError(
-          409,
-          "O agendamento mudou. Recarregue o calendário.",
-        );
-      if (method === "DELETE") {
-        if (input.confirmation !== "CANCELAR") bad("Confirme o cancelamento.");
-        db.prepare("DELETE FROM calendar_events WHERE id=? AND user_id=?").run(
-          row.id,
-          user.id,
-        );
-        return {
-          message:
-            "Agendamento cancelado. Os registros realizados foram preservados.",
-        };
-      }
-      if (["POST", "PUT"].includes(method)) {
-        const date = validDate(input.date),
-          today = localDay(now(), prefs.timeZone);
-        if (date < today || date > shiftDate(today, 730))
-          bad("Agende entre hoje e os próximos dois anos.");
-        const p = plan(text(input.planId, "o plano", 36), user),
-          s = p.sessions.find((s) => s.id === input.sessionId);
-        if (p.status === "archived" || !s)
-          bad("Escolha uma sessão de um plano disponível.");
-        if (
-          !row &&
-          db
-            .prepare("SELECT count(*) n FROM calendar_events WHERE user_id=?")
-            .get(user.id).n >= 1000
-        )
-          bad("Limite de 1000 agendamentos atingido.");
-        const id = row?.id || randomUUID(),
-          payload = encrypt(
-            {
-              planId: p.id,
-              sessionId: s.id,
-              planName: p.name,
-              sessionName: s.name,
-            },
-            key,
-            `calendar:${user.id}:${id}`,
-          );
-        if (row)
-          db.prepare(
-            "UPDATE calendar_events SET date=?,payload=?,version=version+1,updated_at=? WHERE id=? AND user_id=?",
-          ).run(date, payload, now(), id, user.id);
-        else
-          db.prepare("INSERT INTO calendar_events VALUES (?,?,?,?,1,?,?)").run(
-            id,
-            user.id,
-            date,
-            payload,
-            now(),
-            now(),
-          );
-        return {
-          event: unpackEvent(
-            db
-              .prepare("SELECT * FROM calendar_events WHERE id=? AND user_id=?")
-              .get(id, user.id),
-          ),
-        };
-      }
-    }
+    if (/^\/api\/(calendar|calendar-series)(\/|$)/.test(path))
+      return calendar.dispatch(method, url, user, input);
     if (path === "/api/export" && method === "GET") {
       const p = db
         .prepare("SELECT payload FROM profiles WHERE user_id=?")
         .get(user.id);
       return {
-        schemaVersion: 3,
+        schemaVersion: 4,
         exportedAt: new Date(now()).toISOString(),
         account: {
           id: user.id,
@@ -399,6 +397,19 @@ export function evolutionRoutes({ db, key, now, training }) {
         plans: training("GET", new URL("http://local/api/plans"), user).plans,
         workouts: workouts(user.id),
         calendar: events(user.id),
+        calendarSeries: calendar.seriesList(user),
+        planVersions: db
+          .prepare(
+            "SELECT * FROM plan_versions WHERE user_id=? ORDER BY plan_id,version",
+          )
+          .all(user.id)
+          .map((r) => ({
+            planId: r.plan_id,
+            version: r.version,
+            status: r.status,
+            createdAt: r.created_at,
+            ...decrypt(r.payload, key, `plan:${user.id}:${r.plan_id}`),
+          })),
         drafts: db
           .prepare("SELECT * FROM ai_drafts WHERE user_id=? AND expires_at>?")
           .all(user.id, now())
@@ -415,4 +426,6 @@ export function evolutionRoutes({ db, key, now, training }) {
   return { dispatch, preferences };
 }
 export const isEvolutionPath = (path) =>
-  /^\/api\/(preferences|dashboard|statistics|calendar|export)(\/|$)/.test(path);
+  /^\/api\/(preferences|dashboard|statistics|calendar|calendar-series|reports|export)(\/|$)/.test(
+    path,
+  );

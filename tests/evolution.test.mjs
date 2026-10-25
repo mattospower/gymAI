@@ -598,14 +598,14 @@ test("Etapa 3: dados reais, consentimento, isolamento e preservação", async (t
         await app.close();
         const legacy = new DatabaseSync(options.databasePath);
         legacy.exec(
-          "DROP TABLE user_preferences; DROP TABLE calendar_events; DROP TABLE ai_drafts; PRAGMA user_version=2;",
+          "DROP TRIGGER plan_created_version; DROP TRIGGER plan_updated_version; DROP TABLE plan_versions; DROP TABLE calendar_links; DROP TABLE calendar_occurrences; DROP TABLE calendar_series; DROP INDEX workouts_owner_plan_date; DROP TABLE user_preferences; DROP TABLE calendar_events; DROP TABLE ai_drafts; PRAGMA user_version=2;",
         );
         legacy.close();
         app = createApp(options);
         await listen();
         assert.equal(
           app.db.prepare("PRAGMA user_version").get().user_version,
-          3,
+          4,
         );
         for (const [name, rows] of Object.entries(snapshots))
           assert.deepEqual(app.db.prepare(`SELECT * FROM ${name}`).all(), rows);
@@ -892,7 +892,7 @@ test("Migração 2→3 faz rollback integral em falha e recusa versão futura", 
   try {
     let db = openStore(path, key);
     db.exec(
-      "DROP TABLE user_preferences; DROP TABLE calendar_events; DROP TABLE ai_drafts; PRAGMA user_version=2; CREATE TABLE calendar_events (legacy TEXT);",
+      "DROP TRIGGER plan_created_version; DROP TRIGGER plan_updated_version; DROP TABLE plan_versions; DROP TABLE calendar_links; DROP TABLE calendar_occurrences; DROP TABLE calendar_series; DROP INDEX workouts_owner_plan_date; DROP TABLE user_preferences; DROP TABLE calendar_events; DROP TABLE ai_drafts; PRAGMA user_version=2; CREATE TABLE calendar_events (legacy TEXT);",
     );
     db.close();
     assert.throws(() => openStore(path, key), /already exists/);
@@ -912,7 +912,7 @@ test("Migração 2→3 faz rollback integral em falha e recusa versão futura", 
         .get().n,
       0,
     );
-    db.exec("PRAGMA user_version=4");
+    db.exec("PRAGMA user_version=5");
     db.close();
     assert.throws(() => openStore(path, key), /mais recente/);
   } finally {

@@ -62,11 +62,15 @@ for (const page of [
   "evolucao.html",
   "assistente.html",
   "configuracoes.html",
+  "relatorios.html",
 ]) {
   publicFiles.add(page);
   privatePages.add(page);
 }
 publicFiles.add("assets/evolution.js");
+publicFiles.add("assets/reports.js");
+publicFiles.add("assets/plan-tools.js");
+publicFiles.add("assets/data-ui.js");
 const mime = {
   html: "text/html; charset=utf-8",
   css: "text/css; charset=utf-8",
@@ -270,7 +274,10 @@ export function createApp({
         if (isEvolutionPath(path) || path.startsWith("/api/ai/")) {
           const user = requireUser(req);
           limit(`evolution:${hashed(user.id)}`, 300, 15 * 60 * 1000);
-          if (path === "/api/export")
+          if (
+            path === "/api/export" ||
+            (path === "/api/reports" && url.searchParams.has("format"))
+          )
             limit(`export:${hashed(user.id)}`, 5, 3600000);
           let input = {};
           if (req.method !== "GET") {
@@ -283,6 +290,23 @@ export function createApp({
                 requireUser(req),
               )
             : evolution.dispatch(req.method, url, requireUser(req), input);
+          if (path === "/api/reports" && result.csv !== undefined) {
+            res.setHeader("Content-Type", "text/csv; charset=utf-8");
+            res.setHeader(
+              "Content-Disposition",
+              'attachment; filename="gymia-relatorio.csv"',
+            );
+            res.writeHead(200);
+            return res.end("\ufeff" + result.csv);
+          }
+          if (
+            path === "/api/reports" &&
+            url.searchParams.get("format") === "json"
+          )
+            res.setHeader(
+              "Content-Disposition",
+              'attachment; filename="gymia-relatorio.json"',
+            );
           if (path === "/api/export")
             res.setHeader(
               "Content-Disposition",

@@ -20,6 +20,7 @@ const list = (value, min, max, label) => {
 };
 const goals = ["hipertrofia", "forca", "resistencia", "condicionamento"];
 export function validatePlan(input) {
+  if (!input || typeof input !== "object") fail("Plano inválido.");
   if (!goals.includes(input.goal)) fail("Selecione o objetivo do plano.");
   const ids = new Set();
   const uniqueId = (value) => {
@@ -130,6 +131,61 @@ export function trainingRoutes({ db, key, now }) {
   };
   return function dispatch(method, url, user, input = {}) {
     const path = url.pathname;
+    if (method === "GET" && path === "/api/plan-templates")
+      return {
+        templates: [
+          { id: "livre", name: "Uma sessão livre", sessions: ["Sessão livre"] },
+          {
+            id: "alternadas",
+            name: "Organização A / B",
+            sessions: ["Sessão A", "Sessão B"],
+          },
+          {
+            id: "tres-partes",
+            name: "Organização A / B / C",
+            sessions: ["Sessão A", "Sessão B", "Sessão C"],
+          },
+          {
+            id: "movimentos",
+            name: "Separar por movimentos",
+            sessions: ["Empurrar", "Puxar", "Pernas e tronco"],
+          },
+        ],
+        notice:
+          "Exemplos de organização, sem exercícios, séries, cargas ou frequência prescritos. Defina os campos conforme sua escolha.",
+      };
+    const vm = path.match(
+      /^\/api\/plans\/([0-9a-f-]{36})\/versions(?:\/(\d+))?$/i,
+    );
+    if (method === "GET" && vm) {
+      planRow(vm[1], user.id);
+      const rows = db
+        .prepare(
+          "SELECT * FROM plan_versions WHERE plan_id=? AND user_id=? ORDER BY version DESC",
+        )
+        .all(vm[1], user.id);
+      if (vm[2]) {
+        const r = rows.find((r) => r.version === Number(vm[2]));
+        if (!r) throw new HttpError(404, "Versão não encontrada.");
+        return {
+          plan: {
+            ...decrypt(r.payload, key, `plan:${user.id}:${vm[1]}`),
+            id: vm[1],
+            version: r.version,
+            status: r.status,
+            updatedAt: r.created_at,
+          },
+        };
+      }
+      return {
+        versions: rows.map((r) => ({
+          version: r.version,
+          status: r.status,
+          updatedAt: r.created_at,
+        })),
+        retention: 30,
+      };
+    }
     if (method === "GET" && path === "/api/training-context") {
       const row = db
         .prepare("SELECT payload FROM profiles WHERE user_id=?")
@@ -264,12 +320,47 @@ export function trainingRoutes({ db, key, now }) {
       if (planId && !uuid(planId)) fail("Filtro de plano inválido.");
       if (start >= end)
         fail("O período final deve ser igual ou posterior ao inicial.");
+      const pageSize = Number(url.searchParams.get("limit") || 500);
+      if (!Number.isInteger(pageSize) || pageSize < 1 || pageSize > 500)
+        fail("Escolha de 1 a 500 registros por página.");
+      let cursor = { t: 0, id: "" };
+      const encoded = url.searchParams.get("cursor") || "";
+      if (encoded) {
+        try {
+          cursor = JSON.parse(Buffer.from(encoded, "base64url").toString());
+        } catch {
+          fail("Página inválida.");
+        }
+        if (!Number.isSafeInteger(cursor.t) || cursor.t < 0 || !uuid(cursor.id))
+          fail("Página inválida.");
+      }
       const rows = db
         .prepare(
-          "SELECT * FROM workout_logs WHERE user_id=? AND started_at>=? AND started_at<? AND (? IS NULL OR plan_ref=?) ORDER BY started_at DESC,id LIMIT 500",
+          "SELECT * FROM workout_logs WHERE user_id=? AND started_at>=? AND started_at<? AND (? IS NULL OR plan_ref=?) AND (?='' OR started_at<? OR (started_at=? AND id>?)) ORDER BY started_at DESC,id LIMIT ?",
         )
-        .all(user.id, start, end, planId, planId);
-      return { workouts: rows.map(unpackWorkout) };
+        .all(
+          user.id,
+          start,
+          end,
+          planId,
+          planId,
+          encoded,
+          cursor.t,
+          cursor.t,
+          cursor.id,
+          pageSize + 1,
+        );
+      const more = rows.length > pageSize;
+      rows.length = Math.min(rows.length, pageSize);
+      const last = rows.at(-1);
+      return {
+        workouts: rows.map(unpackWorkout),
+        nextCursor: more
+          ? Buffer.from(
+              JSON.stringify({ t: last.started_at, id: last.id }),
+            ).toString("base64url")
+          : null,
+      };
     }
     if (method === "POST" && path === "/api/workouts") {
       if (!uuid(input.planId) || !uuid(input.sessionId))
@@ -413,4 +504,6 @@ export function trainingRoutes({ db, key, now }) {
   };
 }
 export const isTrainingPath = (path) =>
-  /^\/api\/(plans|workouts|exercises|training-context)(\/|$)/.test(path);
+  /^\/api\/(plans|plan-templates|workouts|exercises|training-context)(\/|$)/.test(
+    path,
+  );
