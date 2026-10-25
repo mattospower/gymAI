@@ -1,5 +1,7 @@
 import { api, showMessage } from "./api.js";
 import { node, button, link, field, labels, date } from "./training-ui.js";
+import { reports } from "./reports.js";
+import { panel, checkbox, select, table } from "./data-ui.js";
 const $ = (id) => document.getElementById(id);
 const replaceChildren = (target, ...children) =>
   target.replaceChildren(...children.filter((child) => child != null));
@@ -15,22 +17,6 @@ const action = (fn) => async (event) => {
     if (b?.tagName === "BUTTON") b.disabled = false;
   }
 };
-const panel = (title, ...children) =>
-  node(
-    "section",
-    { class: "card form-card" },
-    node("h2", {}, title),
-    ...children,
-  );
-const checkbox = (id, label, checked = false) =>
-  node(
-    "label",
-    { class: "check" },
-    node("input", { id, type: "checkbox", checked }),
-    node("span", {}, label),
-  );
-const select = (label, id, value, options, change = () => {}) =>
-  field(label, id, value, change, { options });
 const localDay = (value, timeZone) => {
   const p = Object.fromEntries(
     new Intl.DateTimeFormat("en-US", {
@@ -84,6 +70,35 @@ export async function renderDashboard(container) {
         ),
         link("Ver evolução", "evolucao.html"),
       ),
+    ),
+    panel(
+      "Esta semana",
+      node(
+        "p",
+        {},
+        `${pretty(data.week.from)} a ${pretty(data.week.to)} · ${data.week.completed} concluídas · ${data.week.partial} parciais · ${data.week.daysRecorded} dias com registros`,
+      ),
+      node(
+        "div",
+        { class: "training-actions" },
+        link("Relatórios", "relatorios.html"),
+        link("Assistente", "assistente.html"),
+        link("Biblioteca", "exercicios.html"),
+        link("Criar plano", "plano.html"),
+      ),
+    ),
+    panel(
+      "Próximas datas",
+      ...(data.upcoming.length
+        ? data.upcoming.map((e) =>
+            node(
+              "p",
+              {},
+              `${pretty(e.date)} · ${e.planName} · ${e.sessionName}`,
+            ),
+          )
+        : [node("p", {}, "Planeje uma sessão no calendário para vê-la aqui.")]),
+      link("Planejar sessões", "calendario.html"),
     ),
     panel(
       "Últimos treinos",
@@ -244,7 +259,7 @@ async function calendar(root, prefs) {
   const planSelect = select(
     "Plano",
     "schedule-plan",
-    available[0]?.id || "",
+    available.find((p) => p.status === "active")?.id || available[0]?.id || "",
     available.map((p) => [p.id, p.name]),
     () => updateSessions(),
   );
@@ -259,6 +274,45 @@ async function calendar(root, prefs) {
       type: "date",
       required: true,
     }),
+    select("Repetição", "schedule-repeat", "none", [
+      ["none", "Apenas esta data"],
+      ["weekly", "Recorrência semanal"],
+    ]),
+    node(
+      "fieldset",
+      { id: "recurrence-fields", hidden: true },
+      node("legend", {}, "Dias e término da série"),
+      node(
+        "p",
+        { class: "small" },
+        "Semana inicia na segunda-feira. Máximo de 200 ocorrências; datas são locais, sem horário.",
+      ),
+      node(
+        "div",
+        { class: "choice-grid" },
+        ...[
+          "Domingo",
+          "Segunda",
+          "Terça",
+          "Quarta",
+          "Quinta",
+          "Sexta",
+          "Sábado",
+        ].map((d, i) =>
+          checkbox("repeat-day-" + i, d, i === new Date(selected).getUTCDay()),
+        ),
+      ),
+      field("Intervalo em semanas", "repeat-interval", 1, () => {}, {
+        type: "number",
+        min: 1,
+        max: 12,
+        required: true,
+      }),
+      field("Repetir até", "repeat-until", shift(selected, 28), () => {}, {
+        type: "date",
+        required: true,
+      }),
+    ),
     node(
       "div",
       { class: "training-actions" },
@@ -287,6 +341,11 @@ async function calendar(root, prefs) {
     if ($("schedule-title"))
       $("schedule-title").textContent = "Planejar sessão";
     if ($("schedule-date")) $("schedule-date").value = selected;
+    if ($("schedule-repeat")) {
+      $("schedule-repeat").value = "none";
+      $("recurrence-fields").hidden = true;
+      $("schedule-repeat").disabled = false;
+    }
   }
   let data = { events: [], workouts: [] },
     requestVersion = 0;
@@ -300,7 +359,22 @@ async function calendar(root, prefs) {
         node(
           "article",
           { class: "calendar-entry" },
-          node("span", { class: "tag" }, "Planejada"),
+          node(
+            "span",
+            { class: "tag" },
+            e.workoutStatus
+              ? labels[e.workoutStatus] + " · vinculada"
+              : "Planejada",
+          ),
+          e.seriesId
+            ? node(
+                "p",
+                { class: "small" },
+                "Recorrência semanal" +
+                  (e.seriesCancelled ? " · série cancelada" : "") +
+                  (e.exception ? " · ocorrência com alteração individual" : ""),
+              )
+            : null,
           node("p", {}, `${e.planName} · ${e.sessionName}`),
           node(
             "div",
@@ -308,12 +382,188 @@ async function calendar(root, prefs) {
             link("Ver plano", `plano.html?id=${e.planId}`),
             button("Alterar data", () => {
               editing = e;
+              $("schedule-repeat").disabled = true;
+              $("schedule-repeat").value = "none";
+              $("recurrence-fields").hidden = true;
               $("schedule-title").textContent = "Alterar agendamento";
               $("schedule-plan").value = e.planId;
               updateSessions(e.sessionId);
               $("schedule-date").value = e.date;
               $("schedule-date").focus();
             }),
+            e.seriesId && !e.seriesCancelled
+              ? button(
+                  "Editar série",
+                  action(async () => {
+                    const { series: s } = await api(
+                      "calendar-series/" + e.seriesId,
+                    );
+                    editing = { ...e, series: s };
+                    $("schedule-title").textContent =
+                      "Editar série: futuras sem exceções ou registros";
+                    $("schedule-plan").value = s.planId;
+                    updateSessions(s.sessionId);
+                    $("schedule-date").value =
+                      s.startDate < localDay(Date.now(), prefs.timeZone)
+                        ? localDay(Date.now(), prefs.timeZone)
+                        : s.startDate;
+                    $("schedule-repeat").disabled = true;
+                    $("schedule-repeat").value = "weekly";
+                    $("recurrence-fields").hidden = false;
+                    $("repeat-until").value = s.until;
+                    $("repeat-interval").value = s.intervalWeeks;
+                    for (let i = 0; i < 7; i++)
+                      $("repeat-day-" + i).checked = s.weekdays.includes(i);
+                    $("schedule-date").focus();
+                  }),
+                )
+              : null,
+            e.seriesId && !e.seriesCancelled
+              ? button(
+                  "Cancelar série",
+                  action(async () => {
+                    if (
+                      !confirm(
+                        "Cancelar as datas futuras desta série? Datas passadas e registros vinculados serão preservados.",
+                      )
+                    )
+                      return;
+                    await api("calendar-series/" + e.seriesId, {
+                      method: "DELETE",
+                      body: {
+                        version: e.seriesVersion,
+                        confirmation: "CANCELAR",
+                      },
+                    });
+                    reset();
+                    await render();
+                  }),
+                )
+              : null,
+            !e.workoutId
+              ? button(
+                  "Iniciar pelo agendamento",
+                  action(async () => {
+                    const result = await api("calendar/" + e.id + "/start", {
+                      method: "POST",
+                      body: { version: e.version },
+                    });
+                    location.assign(
+                      "sessao-treino.html?id=" + result.workout.id,
+                    );
+                  }),
+                )
+              : null,
+            e.workoutId
+              ? link(
+                  "Abrir registro vinculado",
+                  e.workoutStatus === "in_progress"
+                    ? "sessao-treino.html?id=" + e.workoutId
+                    : "historico.html?id=" + e.workoutId,
+                )
+              : null,
+            button(
+              "Associar registro",
+              action(async () => {
+                const firstPage = await api(
+                  "workouts?planId=" + e.planId + "&limit=100",
+                );
+                const workouts = firstPage.workouts;
+                let nextCursor = firstPage.nextCursor;
+                if (e.workoutId && !workouts.some((w) => w.id === e.workoutId))
+                  workouts.unshift(
+                    (await api("workouts/" + e.workoutId)).workout,
+                  );
+                const more = button(
+                  "Carregar registros anteriores",
+                  action(async () => {
+                    const result = await api(
+                      "workouts?planId=" +
+                        e.planId +
+                        "&limit=100&cursor=" +
+                        nextCursor,
+                    );
+                    $("link-workout").append(
+                      ...result.workouts
+                        .filter((w) => !workouts.some((x) => x.id === w.id))
+                        .map((w) =>
+                          node(
+                            "option",
+                            { value: w.id },
+                            date(w.startedAt) +
+                              " · " +
+                              w.snapshot.sessionName +
+                              " · " +
+                              labels[w.status],
+                          ),
+                        ),
+                    );
+                    workouts.push(...result.workouts);
+                    nextCursor = result.nextCursor;
+                    more.hidden = !nextCursor;
+                  }),
+                  { hidden: !nextCursor },
+                );
+                const dialog = node(
+                  "dialog",
+                  {
+                    class: "library-dialog",
+                    "aria-label": "Associar registro realizado",
+                  },
+                  node("h2", {}, "Associar registro realizado"),
+                  node(
+                    "p",
+                    {},
+                    "Registros deste plano, em páginas de 100. O vínculo não altera data, valores ou estado do treino.",
+                  ),
+                  select(
+                    "Registro do mesmo plano",
+                    "link-workout",
+                    e.workoutId || "",
+                    [
+                      ["", "Sem vínculo"],
+                      ...workouts.map((w) => [
+                        w.id,
+                        date(w.startedAt) +
+                          " · " +
+                          w.snapshot.sessionName +
+                          " · " +
+                          labels[w.status],
+                      ]),
+                    ],
+                  ),
+                  more,
+                  button(
+                    "Salvar vínculo",
+                    action(async () => {
+                      const id = $("link-workout").value;
+                      if (
+                        e.workoutId &&
+                        !confirm("Substituir ou remover o vínculo atual?")
+                      )
+                        return;
+                      await api("calendar/" + e.id + "/link", {
+                        method: "POST",
+                        body: {
+                          version: e.version,
+                          workoutId: id || null,
+                          confirmation: "SUBSTITUIR",
+                        },
+                      });
+                      dialog.close();
+                      dialog.remove();
+                      await render();
+                    }),
+                  ),
+                  button("Fechar associação", () => {
+                    dialog.close();
+                    dialog.remove();
+                  }),
+                );
+                document.body.append(dialog);
+                dialog.showModal();
+              }),
+            ),
             button(
               "Cancelar data",
               action(async () => {
@@ -368,7 +618,9 @@ async function calendar(root, prefs) {
       );
       to = shift(from, 6);
     }
-    const result = await api(`calendar?from=${from}&to=${to}`);
+    const result = await api(
+      `calendar?from=${from}&to=${to}&planId=${$("calendar-plan-filter").value}`,
+    );
     if (revision !== requestVersion) return;
     data = result;
     caption.textContent =
@@ -381,7 +633,10 @@ async function calendar(root, prefs) {
         : `${pretty(from)} a ${pretty(to)}`;
     const days = [];
     for (let d = from; d <= to; d = shift(d, 1)) {
-      const planned = data.events.filter((e) => e.date === d).length,
+      const linked = data.events.filter((e) => e.date === d && e.workoutId);
+      const planned = data.events.filter(
+          (e) => e.date === d && !e.workoutId,
+        ).length,
         done = data.workouts.filter(
           (w) => w.date === d && w.status === "completed",
         ).length,
@@ -425,7 +680,18 @@ async function calendar(root, prefs) {
         node(
           "span",
           {},
-          planned ? `${planned} planejada(s)` : "Sem planejamento",
+          planned
+            ? `${planned} planejada(s)`
+            : linked.length
+              ? "Agenda vinculada"
+              : "Sem planejamento",
+        ),
+        node(
+          "span",
+          {},
+          linked
+            .map((e) => labels[e.workoutStatus] + " · vinculada")
+            .join(", "),
         ),
         node("span", {}, done ? `${done} concluída(s)` : ""),
         node("span", {}, partial ? `${partial} parcial(is)` : ""),
@@ -497,6 +763,13 @@ async function calendar(root, prefs) {
           action(render)();
         },
       ),
+      select(
+        "Filtrar por plano",
+        "calendar-plan-filter",
+        "",
+        [["", "Todos os planos"], ...plans.map((p) => [p.id, p.name])],
+        () => action(render)(),
+      ),
       grid,
     ),
     details,
@@ -504,19 +777,48 @@ async function calendar(root, prefs) {
       ? form
       : panel("Crie um plano primeiro", link("Criar plano", "plano.html")),
   );
-  if (available.length) updateSessions();
+  if (available.length) {
+    updateSessions();
+    $("schedule-repeat").onchange = () => {
+      $("recurrence-fields").hidden = $("schedule-repeat").value !== "weekly";
+    };
+  }
   form.onsubmit = (e) => {
     e.preventDefault();
     action(async () => {
-      await api(editing ? `calendar/${editing.id}` : "calendar", {
-        method: editing ? "PUT" : "POST",
-        body: {
-          version: editing?.version,
-          date: $("schedule-date").value,
-          planId: $("schedule-plan").value,
-          sessionId: $("schedule-session").value,
+      const recurring = $("schedule-repeat").value === "weekly";
+      if (
+        editing?.series &&
+        !confirm(
+          "Substituir as ocorrências futuras sem alterações individuais nem registros vinculados?",
+        )
+      )
+        return;
+      await api(
+        recurring
+          ? editing?.series
+            ? "calendar-series/" + editing.series.id
+            : "calendar-series"
+          : editing
+            ? `calendar/${editing.id}`
+            : "calendar",
+        {
+          method: editing ? "PUT" : "POST",
+          body: {
+            version: editing?.series?.version || editing?.version,
+            startDate: $("schedule-date").value,
+            until: $("repeat-until").value,
+            intervalWeeks: Number($("repeat-interval").value),
+            weekdays: [0, 1, 2, 3, 4, 5, 6].filter(
+              (i) => $("repeat-day-" + i).checked,
+            ),
+            confirmation: "SUBSTITUIR",
+            date: $("schedule-date").value,
+            planId: $("schedule-plan").value,
+            sessionId: $("schedule-session").value,
+          },
         },
-      });
+      );
       anchor = $("schedule-date").value;
       selected = anchor;
       reset();
@@ -559,37 +861,6 @@ function bars(title, rows) {
             "aria-label": `${r.date}: ${r.partial} parciais`,
           }),
           node("span", {}, `${r.completed} concluídas · ${r.partial} parciais`),
-        ),
-      ),
-    ),
-  );
-}
-function table(caption, headers, rows) {
-  return node(
-    "div",
-    { class: "table-scroll", tabindex: "0", "aria-label": caption },
-    node(
-      "table",
-      {},
-      node("caption", {}, caption),
-      node(
-        "thead",
-        {},
-        node(
-          "tr",
-          {},
-          headers.map((h) => node("th", { scope: "col" }, h)),
-        ),
-      ),
-      node(
-        "tbody",
-        {},
-        rows.map((r) =>
-          node(
-            "tr",
-            {},
-            r.map((v) => node("td", {}, v ?? "Não informado")),
-          ),
         ),
       ),
     ),
@@ -995,6 +1266,32 @@ async function assistant(root, prefs) {
       node("p", {}, config.safetyNote),
       link("Gerenciar consentimento", "configuracoes.html"),
     ),
+    panel(
+      "Escolha um assunto",
+      node(
+        "p",
+        {},
+        "Use um ponto de partida e edite sua pergunta antes de enviar.",
+      ),
+      node(
+        "div",
+        { class: "training-actions" },
+        ...[
+          "Como organizar sessões A e B no GymIA?",
+          "Qual a diferença entre séries e repetições?",
+          "Como registrar uma sessão parcial?",
+          "Explique o exercício que selecionei na biblioteca.",
+        ].map((text) =>
+          button(text, () => {
+            $("assistant-kind").value = "chat";
+            draftFields.hidden = true;
+            $("assistant-message").required = true;
+            $("assistant-message").value = text;
+            $("assistant-message").focus();
+          }),
+        ),
+      ),
+    ),
     form,
     output,
     draftsPanel,
@@ -1070,10 +1367,9 @@ if (root) {
   try {
     const { preferences } = await api("preferences");
     const content = $("evolution-content");
-    await { calendar, statistics, assistant, settings }[root.dataset.evolution](
-      content,
-      preferences,
-    );
+    await { calendar, statistics, assistant, settings, reports }[
+      root.dataset.evolution
+    ](content, preferences);
     content.hidden = false;
     document.querySelector("[data-loading]").hidden = true;
   } catch (error) {

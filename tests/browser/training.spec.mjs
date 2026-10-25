@@ -296,7 +296,7 @@ test("Planos manuais, execução parcial, histórico e layouts da Etapa 2", asyn
         exact: true,
       })
       .check();
-    await expect(page.locator(".exercise-card")).toHaveCount(9);
+    await expect(page.locator(".exercise-card")).toHaveCount(12);
     const plans = (await (await page.request.get(origin + "/api/plans")).json())
       .plans;
     const remaining = plans.find((p) => p.name === copied);

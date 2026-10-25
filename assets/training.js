@@ -1,4 +1,5 @@
 import { api, showMessage } from "./api.js";
+import { installPlanTools } from "./plan-tools.js";
 import { renderDashboard } from "./evolution.js";
 import {
   node,
@@ -53,9 +54,9 @@ function empty(text) {
 
 async function dashboard() {
   await renderDashboard(document.getElementById("dashboard-summary"));
-  const [{ plans }, { workouts }] = await Promise.all([
+  const [{ plans }, dashboardData] = await Promise.all([
     api("plans"),
-    api("workouts"),
+    api("dashboard"),
   ]);
   $("profile-context").replaceChildren(
     profile
@@ -71,7 +72,7 @@ async function dashboard() {
           ),
         ),
   );
-  const running = workouts.find((w) => w.status === "in_progress");
+  const running = dashboardData.running;
   $("running-workout").replaceChildren(
     ...(running
       ? [
@@ -414,6 +415,20 @@ async function editor() {
             "div",
             { class: "section-heading" },
             node("h2", {}, `Sessão ${index + 1}`),
+            field(
+              "Posição da sessão",
+              session.id + "-position",
+              index,
+              (value) => {
+                const to = Number(value);
+                const [moved] = plan.sessions.splice(index, 1);
+                plan.sessions.splice(to, 0, moved);
+                changed();
+                render();
+                $(session.id + "-position").focus();
+              },
+              { options: plan.sessions.map((s, i) => [i, String(i + 1)]) },
+            ),
             button("Duplicar sessão", () => {
               if (plan.sessions.length >= 7)
                 return showMessage(
@@ -523,12 +538,28 @@ async function editor() {
       dirty = false;
       location.assign("treinos.html");
     } catch (error) {
+      $("plan-save-state").textContent =
+        error.status === 409
+          ? "Não salvo: o plano mudou em outra aba. Compare com os dados mais recentes abaixo. Suas alterações continuam nesta tela."
+          : "Não salvo. Suas alterações continuam nesta tela.";
       showMessage(message, error.message, true);
     } finally {
       submit.disabled = false;
     }
   };
   render();
+  await installPlanTools({
+    catalog,
+    form: $("plan-form"),
+    getPlan: () => plan,
+    applySessions: (sessions) => {
+      plan.sessions = sessions;
+      changed();
+      render();
+    },
+    action,
+    dirty: () => dirty,
+  });
 }
 
 async function workout() {
@@ -708,13 +739,20 @@ async function workout() {
 }
 
 async function history() {
-  const initial = (await api("workouts")).workouts;
+  const initial = (await api("workouts?limit=25")).workouts;
   const names = new Map(initial.map((w) => [w.planId, w.snapshot.planName]));
   $("history-plan").append(
     ...[...names].map(([id, name]) => node("option", { value: id }, name)),
   );
-  async function render() {
-    const query = new URLSearchParams();
+  let nextCursor = null;
+  const more = button(
+    "Carregar mais registros",
+    action(() => render(true)),
+  );
+  $("history-list").after(more);
+  async function render(append = false) {
+    const query = new URLSearchParams({ limit: "25" });
+    if (append && nextCursor) query.set("cursor", nextCursor);
     if ($("history-plan").value) query.set("planId", $("history-plan").value);
     if ($("history-from").value)
       query.set(
@@ -726,10 +764,24 @@ async function history() {
       end.setDate(end.getDate() + 1);
       query.set("untilInstant", end.toISOString());
     }
-    const workouts = params.has("id")
-      ? [(await api(`workouts/${params.get("id")}`)).workout]
-      : (await api(`workouts?${query}`)).workouts;
-    $("history-list").replaceChildren(
+    const result = params.has("id")
+      ? {
+          workouts: [(await api(`workouts/${params.get("id")}`)).workout],
+          nextCursor: null,
+        }
+      : await api(`workouts?${query}`);
+    const workouts = result.workouts;
+    nextCursor = result.nextCursor;
+    more.hidden = !nextCursor;
+    for (const w of workouts)
+      if (!names.has(w.planId)) {
+        names.set(w.planId, w.snapshot.planName);
+        $("history-plan").append(
+          node("option", { value: w.planId }, w.snapshot.planName),
+        );
+      }
+    if (!append) $("history-list").replaceChildren();
+    $("history-list").append(
       ...workouts.map((w) =>
         node(
           "article",
