@@ -1,6 +1,6 @@
-# gymAI — etapa 2
+# gymAI — etapa 3
 
-Evolução do HTML/CSS original para contas, perfis, planos manuais e registros de treinamento. Preserva a paleta, as fontes Archivo, DM Sans e JetBrains Mono e os componentes da página inicial. Não gera treinos por IA nesta etapa.
+Evolução do HTML/CSS original para contas, perfis, planos manuais e registros de treinamento. Preserva a paleta, as fontes Archivo, DM Sans e JetBrains Mono e os componentes da página inicial. Inclui calendário, estatísticas reais, exportação e assistente opcional com rascunhos sujeitos à revisão. O padrão é demonstração local sem chamadas externas. Consulte [a documentação da Etapa 3](docs/ETAPA3.md) para configuração, limites, dados enviados e atualização segura da Etapa 2.
 
 ## Executar localmente
 
@@ -27,7 +27,7 @@ O servidor atende o HTML original e a API na mesma origem. **Abrir arquivos dire
 
 ## Arquitetura e escolha
 
-HTML, CSS e JavaScript sem framework no navegador; servidor HTTP e SQLite nativos do Node; **Nodemailer é a única dependência de execução**. Não há SDK de IA nem serviços contratados.
+HTML, CSS e JavaScript sem framework no navegador; servidor HTTP e SQLite nativos do Node; **Nodemailer é a única dependência de execução**. Não há SDK de IA nem serviços contratados. O adaptador opcional usa fetch no servidor e precisa ser explicitamente habilitado.
 
 Esta escolha permite executar e verificar contas e persistência sem criar um serviço externo. SQLite atende ao piloto acadêmico pequeno descrito no TCC, em uma única instância com disco persistente. Não é uma arquitetura para múltiplas réplicas ou alto volume. O `node:sqlite` é uma API ainda em evolução; a versão mínima é explícita e deve ser atualizada com os patches de segurança do Node.
 
@@ -68,7 +68,7 @@ Sem SMTP, o site informa que a recuperação está indisponível e desativa o en
 
 **Guarde uma cópia protegida da chave separadamente do backup do banco.** Perder a chave perde o acesso aos perfis. Não execute `setup` para trocar uma chave existente, não apague `.env` ao atualizar e não tente rotacionar a chave sem recriptografar os dados por uma migração específica.
 
-O cadastro não inclui confirmação de propriedade do e-mail nesta etapa. Use contas de teste no piloto; confirme os endereços por um processo controlado antes de aceitar dados reais de participantes externos. Não há MFA, login Google/Apple, pesquisa com participantes, geração de treinos ou avaliação clínica.
+O cadastro não inclui confirmação de propriedade do e-mail nesta etapa. Use contas de teste no piloto; confirme os endereços por um processo controlado antes de aceitar dados reais de participantes externos. Não há MFA, login Google/Apple, pesquisa com participantes, avaliação clínica ou ativação automática de treinos.
 
 ## Antes de disponibilizar a participantes externos
 
