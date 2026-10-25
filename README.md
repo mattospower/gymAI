@@ -1,4 +1,6 @@
-# gymAI — etapa 3
+# gymAI — etapa 4
+
+A Etapa 4 acrescenta recorrência semanal, vínculo opcional entre calendário e execução, biblioteca de 40 atividades, modelos editáveis, comparação de versões, histórico paginado e relatórios CSV/JSON com impressão. Consulte [o guia da Etapa 4](docs/ETAPA4.md) para limites, migração v4, atualização e restauração. Esta branch depende da Etapa 3; enquanto ela não estiver na main, o PR deve ter como base `feat/etapa-3-evolucao-gymia`.
 
 Evolução do HTML/CSS original para contas, perfis, planos manuais e registros de treinamento. Preserva a paleta, as fontes Archivo, DM Sans e JetBrains Mono e os componentes da página inicial. Inclui calendário, estatísticas reais, exportação e assistente opcional com rascunhos sujeitos à revisão. O padrão é demonstração local sem chamadas externas. Consulte [a documentação da Etapa 3](docs/ETAPA3.md) para configuração, limites, dados enviados e atualização segura da Etapa 2.
 
@@ -29,7 +31,7 @@ O servidor atende o HTML original e a API na mesma origem. **Abrir arquivos dire
 
 HTML, CSS e JavaScript sem framework no navegador; servidor HTTP e SQLite nativos do Node; **Nodemailer é a única dependência de execução**. Não há SDK de IA nem serviços contratados. O adaptador opcional usa fetch no servidor e precisa ser explicitamente habilitado.
 
-Esta escolha permite executar e verificar contas e persistência sem criar um serviço externo. SQLite atende ao piloto acadêmico pequeno descrito no TCC, em uma única instância com disco persistente. Não é uma arquitetura para múltiplas réplicas ou alto volume. O `node:sqlite` é uma API ainda em evolução; a versão mínima é explícita e deve ser atualizada com os patches de segurança do Node.
+Esta escolha permite executar e verificar contas e persistência sem criar um serviço externo. SQLite atende a um piloto acadêmico pequeno, em uma única instância com disco persistente. Não é uma arquitetura para múltiplas réplicas ou alto volume. O `node:sqlite` é uma API ainda em evolução; a versão mínima é explícita e deve ser atualizada com os patches de segurança do Node.
 
 Supabase/Firebase também permitiriam contas reais, mas exigiriam a criação de projeto, configuração de regras de acesso, e-mails e credenciais antes de verificar os fluxos completos. Podem ser avaliados se o grupo precisar manter hospedagem exclusivamente estática. A versão atual requer um processo Node e disco persistente; não pressupõe que haverá hospedagem gratuita com essas características.
 
@@ -136,7 +138,7 @@ O backup usa a SQLite Backup API e é criado no diretório `backups/` ao lado do
 
 As tabelas `training_plans` e `workout_logs` guardam os dados novos por usuário. Sessões planejadas e seus exercícios ficam no payload criptografado de cada plano; registros e a cópia dos exercícios usados ficam no payload criptografado de cada execução. Índices garantem um ativo e uma execução em andamento por conta. A exclusão de conta elimina os dados novos por cascata; excluir um plano mantém os registros, com a referência original para filtro. Alterar um plano nunca altera retroativamente uma sessão iniciada ou encerrada.
 
-Limites operacionais do piloto: 100 planos por conta, 7 sessões por plano, 30 exercícios por sessão, 20 séries por exercício e corpo de solicitação de até 256 KiB nas rotas novas. São limites técnicos de armazenamento, **não recomendações de volume**. O histórico retorna até as 500 sessões mais recentes do período consultado; filtros de período/plano permitem consultar registros mais antigos. A interface converte datas do calendário local em instantes para filtrar de acordo com o horário exibido.
+Limites operacionais do piloto: 100 planos por conta, 7 sessões por plano, 30 exercícios por sessão, 20 séries por exercício e corpo de solicitação de até 256 KiB nas rotas de treinos. São limites técnicos de armazenamento, **não recomendações de volume**. Na Etapa 4, o histórico usa cursor e carrega 25 registros por página na interface; a API permite 1–500 por página e retorna o cursor seguinte. A interface converte datas do calendário local em instantes para filtrar de acordo com o horário exibido. Relatórios e calendário usam o fuso salvo nas preferências, conforme o guia da Etapa 4.
 
 ### Biblioteca e testes
 
