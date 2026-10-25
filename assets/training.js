@@ -1,4 +1,5 @@
 import { api, showMessage } from "./api.js";
+import { renderDashboard } from "./evolution.js";
 import {
   node,
   button,
@@ -51,6 +52,7 @@ function empty(text) {
 }
 
 async function dashboard() {
+  await renderDashboard(document.getElementById("dashboard-summary"));
   const [{ plans }, { workouts }] = await Promise.all([
     api("plans"),
     api("workouts"),
@@ -188,6 +190,8 @@ async function dashboard() {
 }
 
 async function editor() {
+  const draftId = params.get("draft");
+  const draft = draftId ? (await api(`ai/drafts/${draftId}`)).draft : null;
   let plan = params.get("id")
     ? (await api(`plans/${params.get("id")}`)).plan
     : {
@@ -198,6 +202,41 @@ async function editor() {
           { id: crypto.randomUUID(), name: "", day: "", exercises: [] },
         ],
       };
+  if (draft) {
+    plan = draft.plan;
+    const notice = node(
+      "div",
+      { class: "notice" },
+      node(
+        "strong",
+        {},
+        `Rascunho ${draft.provider === "demo" ? "de demonstração local" : "do assistente"} — revise antes de salvar`,
+      ),
+      node(
+        "p",
+        {},
+        "Nenhum plano foi criado ou ativado. Revise cada exercício e valor. As sugestões não são avaliação profissional nem garantem resultados.",
+      ),
+    );
+    $("plan-form").prepend(notice);
+    $("plan-form").append(
+      node(
+        "label",
+        { class: "check" },
+        node("input", {
+          type: "checkbox",
+          id: "draft-reviewed",
+          required: true,
+        }),
+        node(
+          "span",
+          {},
+          "Revisei os exercícios e valores e confirmo salvar como plano inativo.",
+        ),
+      ),
+    );
+    dirty = true;
+  }
   const archived = plan.status === "archived";
   if (archived) {
     $("plan-form").replaceChildren(
@@ -375,6 +414,22 @@ async function editor() {
             "div",
             { class: "section-heading" },
             node("h2", {}, `Sessão ${index + 1}`),
+            button("Duplicar sessão", () => {
+              if (plan.sessions.length >= 7)
+                return showMessage(
+                  message,
+                  "Limite de 7 sessões por plano.",
+                  true,
+                );
+              const copy = structuredClone(session);
+              copy.id = crypto.randomUUID();
+              copy.name = `${copy.name.slice(0, 70)} (cópia)`;
+              copy.exercises.forEach((e) => (e.id = crypto.randomUUID()));
+              plan.sessions.splice(index + 1, 0, copy);
+              changed();
+              render();
+              $(`${copy.id}-name`).focus();
+            }),
             button("Remover sessão", () => {
               if (plan.sessions.length === 1) {
                 showMessage(
@@ -454,10 +509,16 @@ async function editor() {
     const submit = $("plan-form").querySelector("[type=submit]");
     submit.disabled = true;
     try {
-      const result = await api(plan.id ? `plans/${plan.id}` : "plans", {
-        method: plan.id ? "PUT" : "POST",
-        body: plan,
-      });
+      $("plan-save-state").textContent = "Salvando no servidor…";
+      const result = draft
+        ? await api(`ai/drafts/${draftId}/save`, {
+            method: "POST",
+            body: { plan, reviewed: $("draft-reviewed").checked },
+          })
+        : await api(plan.id ? `plans/${plan.id}` : "plans", {
+            method: plan.id ? "PUT" : "POST",
+            body: plan,
+          });
       plan = result.plan;
       dirty = false;
       location.assign("treinos.html");
@@ -665,12 +726,14 @@ async function history() {
       end.setDate(end.getDate() + 1);
       query.set("untilInstant", end.toISOString());
     }
-    const { workouts } = await api(`workouts?${query}`);
+    const workouts = params.has("id")
+      ? [(await api(`workouts/${params.get("id")}`)).workout]
+      : (await api(`workouts?${query}`)).workouts;
     $("history-list").replaceChildren(
       ...workouts.map((w) =>
         node(
           "article",
-          { class: "card form-card" },
+          { class: "card form-card", id: `workout-${w.id}` },
           node(
             "div",
             { class: "section-heading" },
@@ -717,6 +780,8 @@ async function history() {
         ),
       ),
     );
+    if (params.has("id"))
+      $("history-list").querySelector("details")?.setAttribute("open", "");
     if (!workouts.length)
       $("history-list").append(
         node(
@@ -728,6 +793,8 @@ async function history() {
   }
   $("history-filter").onsubmit = (event) => {
     event.preventDefault();
+    params.delete("id");
+    window.history.replaceState(null, "", "historico.html");
     action(render)();
   };
   await render();
