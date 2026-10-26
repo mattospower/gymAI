@@ -1,6 +1,6 @@
 import { test, expect } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
-import { createApp } from "../../server/app.mjs";
+import { createTestApp as createApp } from "../helpers/app.mjs";
 import { randomBytes } from "node:crypto";
 import { mkdirSync, mkdtempSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
@@ -14,7 +14,7 @@ test("Etapa 4: modelos, conflitos, recorrência, vínculos, relatórios e impres
   mkdirSync(parent, { recursive: true });
   const directory = mkdtempSync(resolve(parent, "browser-expansion-"));
   const origin = "http://localhost:3113",
-    app = createApp({
+    app = await createApp({
       origin,
       databasePath: resolve(directory, "db.sqlite"),
       encryptionKey: randomBytes(32).toString("hex"),
