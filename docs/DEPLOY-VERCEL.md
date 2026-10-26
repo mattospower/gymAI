@@ -2,6 +2,28 @@
 
 Esta branch parte da Etapa 4 (`152e3bd`) e contém as Etapas 1–4. Os PRs #3 e #4 ainda estavam abertos em 25/10/2026; a main estava na Etapa 2 (`04def68`). O PR desta adaptação usa como base `feat/etapa-4-expansao-gymia`, evitando repetir as entregas anteriores. Nenhum merge é necessário para publicar esta branch explicitamente.
 
+## Publicação confirmada em 25/10/2026
+
+**URL pública: https://gymia-gym-ia1.vercel.app**. Projeto `gymia`, equipe `gym-ia1`, Vercel Hobby. Banco `gymia-postgres`, Neon Free, região Washington (`iad1`), conectado somente a Production. Neon Auth e Realtime não foram ativados. A origem canônica acima é a única aceita pela aplicação.
+
+O código da aplicação no commit `456c80c6cf8003ba7ad695f00d80dff30096ae0e` foi publicado pela CLI oficial autenticada. O segundo deploy, `dpl_zygDPbZnKVy2wKQfdemNPjL2a2TB`, ficou Ready e substituiu o primeiro no mesmo domínio. Não há integração de deploy automático por GitHub: a conta autenticada não tinha o repositório disponível para seleção no aplicativo da Vercel. A publicação direta evitou ampliar permissões de outros repositórios.
+
+As dez verificações na URL pública passaram: HTTPS/headers/arquivos privados; cadastro/cookie seguro; perfil/preferências/CSRF; biblioteca/plano/versões/ativação/conflito; recorrência/execução vinculada; dashboard/histórico/evolução/relatórios/exportação/isolamento; assistente demonstrativo/revisão; persistência e sessão após novo deploy; logout/revogação/login; indisponibilidade explícita da recuperação sem SMTP. Duas contas fictícias foram removidas e seus acessos revogados. Login, dashboard e calendário também foram conferidos no navegador real da hospedagem; em 320 px não houve rolagem horizontal. A paleta e a fonte Archivo foram confirmadas no CSS aplicado.
+
+Nenhum dado pessoal real foi importado. Não foram contratados serviços pagos, cartão, upgrade, domínio pago ou IA paga. Recuperação por e-mail permanece indisponível até configurar e validar SMTP. Backup/restauração foram testados localmente; não há agendamento de backup nem teste de restauração do banco hospedado. Não houve merge dos PRs.
+
+Para próximas publicações manuais, confira a branch `feat/deploy-vercel-gymia`, a equipe e a origem antes de executar:
+
+```sh
+vercel link --yes --scope gym-ia1 --project gymia
+vercel pull --yes --environment=production --scope gym-ia1
+vercel build --prod --scope gym-ia1
+pnpm run test:deploy
+vercel deploy --prebuilt --prod --scope gym-ia1 --yes
+```
+
+No Windows, use `vercel.cmd` se a política local bloquear o wrapper PowerShell. As variáveis sensíveis não precisam ser baixadas para o build; a CLI pode mostrar apenas marcadores para seus valores. Não substitua as chaves persistentes. Novas mudanças de código exigem nova aceitação pública. Mudanças apenas nesta documentação não alteram o pacote da aplicação.
+
 ## Arquitetura
 
 O HTML/CSS/JavaScript original e a API Node 24 são servidos pela mesma origem HTTPS. `pnpm run build` gera `.vercel/output` pelo Build Output API, com uma função `gymia` para todas as rotas. A função reutiliza o pool de conexões, mas consulta cada sessão no banco. Páginas privadas continuam autenticadas no servidor; não são expostas como arquivos estáticos. Cores, fontes e arquivos de interface não foram redesenhados.
@@ -14,7 +36,7 @@ As transações usam uma conexão dedicada e bloqueios por conta, inclusive entr
 
 ## Serviços e planos
 
-Escolha prevista: **Vercel Hobby + Neon Free**, usando a URL com pool do Neon. Nenhum serviço foi provisionado por esta documentação, nenhuma cobrança foi autorizada e nenhuma credencial está no repositório.
+Serviços provisionados e confirmados: **Vercel Hobby + Neon Free**, usando a URL com pool do Neon. Nenhuma contratação paga foi realizada e nenhuma credencial está no repositório.
 
 Em consulta às páginas oficiais em 25/10/2026, o Neon Free indicava 1 GB e 100 CU-h mensais por projeto, suspensão de computação ociosa e restauração pontual limitada a até 6 horas/1 GB de alterações. O Hobby da Vercel restringe-se a uso pessoal não comercial, com cotas próprias e suspensão de recursos ao excedê-las. Confirme os números e a oferta efetiva no momento da criação; planos do Marketplace podem ter condições diferentes. Não habilite upgrade, cartão ou cobrança automática para este piloto.
 
@@ -24,8 +46,8 @@ Em consulta às páginas oficiais em 25/10/2026, o Neon Free indicava 1 GB e 100
 
 ## Publicação específica desta branch
 
-1. Autentique sua conta em [Vercel](https://vercel.com/dashboard). Se aparecer autorização do GitHub, conclua somente com a conta e o acesso que você pretende usar. Se for necessário aceitar termos ou ampliar permissões do repositório, o responsável deve conferir e concluir essa etapa.
-2. Importe `mattospower/gymAI` como projeto **GymIA**. Selecione explicitamente `feat/deploy-vercel-gymia` como branch de produção. Não publique a main enquanto as Etapas 3/4 não forem integradas por revisão.
+1. Autentique sua conta em [Vercel](https://vercel.com/dashboard). Se aparecer autorização do GitHub, conclua somente com a conta e o acesso que você pretende usar. Se for necessário aceitar termos ou ampliar permissões do repositório, o responsável deve conferir e concluir essa etapa. O projeto existente já está vinculado à CLI; prefira o procedimento manual acima.
+2. Em outra instalação, use o checkout de `mattospower/gymAI` na branch `feat/deploy-vercel-gymia` e vincule-o ao projeto correto pela CLI. A importação por GitHub é opcional e depende de acesso ao repositório. Se futuramente configurar deploy por Git, selecione explicitamente essa branch de produção. Não publique a main enquanto as Etapas 3/4 não forem integradas por revisão.
 3. Use plano gratuito, Framework **Other**, raiz do repositório, Node **24.x**, instalação `pnpm install --frozen-lockfile` e build `pnpm run build`. Não selecione uma pasta de HTML público como Output Directory: o build gera `.vercel/output` com a função autenticada.
 4. Crie um projeto PostgreSQL **vazio** no Neon Free e obtenha sua URL com pool. Use a mesma região, ou uma região próxima da função (padrão Vercel `iad1`, Washington). Não importe nenhum SQLite existente nesta etapa.
 5. Configure as variáveis abaixo nos segredos do projeto da Vercel para Production. Registre as chaves em um gerenciador de senhas separado. Não as publique no GitHub, em screenshots ou neste chat.
