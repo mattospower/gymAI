@@ -2,7 +2,8 @@ import { createServer } from "node:http";
 import { readFile } from "node:fs/promises";
 import { randomUUID, createHmac } from "node:crypto";
 import { fileURLToPath } from "node:url";
-import { openStore, transaction } from "./store.mjs";
+import { openStore } from "./store.mjs";
+import { asyncTransaction as transaction } from "./database.mjs";
 import { trainingRoutes, isTrainingPath } from "./training.mjs";
 import { evolutionRoutes, isEvolutionPath } from "./evolution.mjs";
 import { aiRoutes, createProvider } from "./ai.mjs";
@@ -19,7 +20,6 @@ import {
   password,
   profile,
 } from "./security.mjs";
-
 const root = new URL("../", import.meta.url);
 const publicFiles = new Set([
   "index.html",
@@ -81,10 +81,11 @@ const recoveryResponse = {
   message:
     "Se houver uma conta com esse e-mail, você receberá instruções de recuperação. Confira também a caixa de spam.",
 };
-
 export function createApp({
   origin,
   databasePath,
+  store,
+  trustedProxy = false,
   encryptionKey,
   production = false,
   sendRecovery = null,
@@ -104,8 +105,12 @@ export function createApp({
   if (!/^[a-f0-9]{64}$/i.test(encryptionKey || ""))
     throw new Error("Defina DATA_ENCRYPTION_KEY com 64 dígitos hexadecimais.");
   const key = Buffer.from(encryptionKey, "hex");
-  const db = openStore(databasePath, key);
-  const training = trainingRoutes({ db, key, now });
+  const db = store || openStore(databasePath, key);
+  const training = trainingRoutes({
+    db,
+    key,
+    now,
+  });
   const secure = canonical.protocol === "https:";
   const cookieName = secure ? "__Host-gymia_session" : "gymia_session";
   // Same KDF work for an unknown account to reduce login enumeration by timing.
@@ -113,7 +118,6 @@ export function createApp({
   const pendingMail = new Set();
   const hashed = (value) =>
     createHmac("sha256", key).update(value).digest("hex");
-
   const json = (res, status, body) => {
     res.writeHead(status, {
       "Content-Type": "application/json; charset=utf-8",
@@ -130,38 +134,38 @@ export function createApp({
       "Set-Cookie",
       `${cookieName}=${value}; Path=/; HttpOnly; SameSite=Strict; Max-Age=${sessionDuration / 1000}${secure ? "; Secure" : ""}`,
     );
-  const cleanup = () => {
-    db.prepare("DELETE FROM sessions WHERE expires_at <= ?").run(now());
-    db.prepare("DELETE FROM resets WHERE expires_at <= ?").run(now());
-    db.prepare("DELETE FROM rate_limits WHERE until <= ?").run(now());
+  const cleanup = async () => {
+    await db.prepare("DELETE FROM sessions WHERE expires_at <= ?").run(now());
+    await db.prepare("DELETE FROM resets WHERE expires_at <= ?").run(now());
+    await db.prepare("DELETE FROM rate_limits WHERE until <= ?").run(now());
   };
-  const session = (req) => {
+  const session = async (req) => {
     const value = (req.headers.cookie || "")
       .split(";")
       .map((item) => item.trim())
       .find((item) => item.startsWith(`${cookieName}=`))
       ?.slice(cookieName.length + 1);
     if (!/^[a-f0-9]{64}$/.test(value || "")) return null;
-    return db
+    return await db
       .prepare(
         `SELECT users.*, sessions.token_hash AS session_hash FROM sessions JOIN users ON users.id = sessions.user_id
       WHERE sessions.token_hash = ? AND sessions.expires_at > ?`,
       )
       .get(digest(value), now());
   };
-  const hasProfile = (user) =>
+  const hasProfile = async (user) =>
     Boolean(
-      db.prepare("SELECT 1 FROM profiles WHERE user_id = ?").get(user.id),
+      await db.prepare("SELECT 1 FROM profiles WHERE user_id = ?").get(user.id),
     );
-  const account = (user) => ({
+  const account = async (user) => ({
     id: user.id,
     name: user.name,
     email: user.email,
     createdAt: new Date(user.created_at).toISOString(),
-    hasProfile: hasProfile(user),
+    hasProfile: await hasProfile(user),
   });
-  const requireUser = (req) => {
-    const user = session(req);
+  const requireUser = async (req) => {
+    const user = await session(req);
     if (!user)
       throw new HttpError(
         401,
@@ -169,29 +173,27 @@ export function createApp({
       );
     return user;
   };
-  const addSession = (userId) => {
+  const addSession = async (userId) => {
     const value = token();
-    db.prepare("INSERT INTO sessions VALUES (?, ?, ?)").run(
-      digest(value),
-      userId,
-      now() + sessionDuration,
-    );
+    await db
+      .prepare("INSERT INTO sessions VALUES (?, ?, ?)")
+      .run(digest(value), userId, now() + sessionDuration);
     return value;
   };
-  const limit = (limitKey, maximum, duration) => {
-    const row = db
-      .prepare("SELECT * FROM rate_limits WHERE key = ?")
-      .get(limitKey);
-    if (row && row.until > now() && row.count >= maximum)
+  const limit = async (limitKey, maximum, duration) => {
+    const row = await db
+      .prepare(
+        `INSERT INTO rate_limits VALUES (?, 1, ?) ON CONFLICT(key) DO UPDATE SET
+      count = CASE WHEN rate_limits.until <= ? THEN 1 ELSE rate_limits.count + 1 END,
+      until = CASE WHEN rate_limits.until <= ? THEN excluded.until ELSE rate_limits.until END
+      RETURNING count`,
+      )
+      .get(limitKey, now() + duration, now(), now());
+    if (row.count > maximum)
       throw new HttpError(
         429,
         "Muitas tentativas. Aguarde alguns minutos e tente novamente.",
       );
-    db.prepare(
-      `INSERT INTO rate_limits VALUES (?, 1, ?) ON CONFLICT(key) DO UPDATE SET
-      count = CASE WHEN until <= ? THEN 1 ELSE count + 1 END,
-      until = CASE WHEN until <= ? THEN excluded.until ELSE until END`,
-    ).run(limitKey, now() + duration, now(), now());
   };
   const body = async (req, maximum = 16384) => {
     if (req.headers.origin !== origin || req.headers["x-gymia-request"] !== "1")
@@ -217,8 +219,12 @@ export function createApp({
       throw new HttpError(400, "Não foi possível ler o formulário.");
     }
   };
-
-  const evolution = evolutionRoutes({ db, key, now, training });
+  const evolution = evolutionRoutes({
+    db,
+    key,
+    now,
+    training,
+  });
   const assistant = aiRoutes({
     db,
     key,
@@ -229,8 +235,7 @@ export function createApp({
     limit,
     hashed,
   });
-
-  const server = createServer(async (req, res) => {
+  const handle = async (req, res) => {
     res.setHeader("Cache-Control", "no-store");
     res.setHeader("X-Content-Type-Options", "nosniff");
     res.setHeader("X-Frame-Options", "DENY");
@@ -251,19 +256,21 @@ export function createApp({
       const url = new URL(req.url, origin);
       const path = decodeURIComponent(url.pathname);
       if (path.startsWith("/api/")) {
-        cleanup();
+        await cleanup();
         const route = `${req.method} ${path}`;
         if (route === "GET /api/config")
           return json(res, 200, {
             passwordRecoveryAvailable: Boolean(sendRecovery),
           });
         if (route === "GET /api/session") {
-          const user = session(req);
-          return json(res, 200, { user: user ? account(user) : null });
+          const user = await session(req);
+          return json(res, 200, {
+            user: user ? await account(user) : null,
+          });
         }
         if (route === "GET /api/profile") {
-          const user = requireUser(req);
-          const row = db
+          const user = await requireUser(req);
+          const row = await db
             .prepare("SELECT * FROM profiles WHERE user_id = ?")
             .get(user.id);
           return json(res, 200, {
@@ -272,13 +279,13 @@ export function createApp({
           });
         }
         if (isEvolutionPath(path) || path.startsWith("/api/ai/")) {
-          const user = requireUser(req);
-          limit(`evolution:${hashed(user.id)}`, 300, 15 * 60 * 1000);
+          const user = await requireUser(req);
+          await limit(`evolution:${hashed(user.id)}`, 300, 15 * 60 * 1000);
           if (
             path === "/api/export" ||
             (path === "/api/reports" && url.searchParams.has("format"))
           )
-            limit(`export:${hashed(user.id)}`, 5, 3600000);
+            await limit(`export:${hashed(user.id)}`, 5, 3600000);
           let input = {};
           if (req.method !== "GET") {
             if (!["POST", "PUT", "DELETE"].includes(req.method))
@@ -286,10 +293,24 @@ export function createApp({
             input = await body(req, 32768);
           }
           const result = path.startsWith("/api/ai/")
-            ? await assistant(req.method, url, requireUser(req), input, () =>
-                requireUser(req),
+            ? await assistant(
+                req.method,
+                url,
+                await requireUser(req),
+                input,
+                async () => await requireUser(req),
               )
-            : evolution.dispatch(req.method, url, requireUser(req), input);
+            : await transaction(
+                db,
+                async () =>
+                  evolution.dispatch(
+                    req.method,
+                    url,
+                    await requireUser(req),
+                    input,
+                  ),
+                user.id,
+              );
           if (path === "/api/reports" && result.csv !== undefined) {
             res.setHeader("Content-Type", "text/csv; charset=utf-8");
             res.setHeader(
@@ -315,28 +336,40 @@ export function createApp({
           return json(res, 200, result);
         }
         if (isTrainingPath(path)) {
-          const user = requireUser(req);
+          const user = await requireUser(req);
           let input = {};
           if (req.method !== "GET") {
             if (!["POST", "PUT", "DELETE"].includes(req.method))
               throw new HttpError(405, "Método não permitido.");
-            limit(`training:${hashed(user.id)}`, 300, 15 * 60 * 1000);
+            await limit(`training:${hashed(user.id)}`, 300, 15 * 60 * 1000);
             input = await body(req, 262144);
           }
           return json(
             res,
             200,
-            training(req.method, url, requireUser(req), input),
+            await transaction(
+              db,
+              async () =>
+                training(req.method, url, await requireUser(req), input),
+              user.id,
+            ),
           );
         }
         if (!["POST", "PUT", "DELETE"].includes(req.method))
           throw new HttpError(404, "Página não encontrada.");
         // Rate-limit before parsing bodies and running password derivation.
-        const ip = hashed(req.socket.remoteAddress || "unknown");
-        limit(`ip:${ip}`, 100, 15 * 60 * 1000);
+        const forwarded = trustedProxy
+          ? req.headers["x-vercel-forwarded-for"]
+          : null;
+        const ip = hashed(
+          typeof forwarded === "string"
+            ? forwarded.split(",")[0].trim()
+            : req.socket.remoteAddress || "unknown",
+        );
+        await limit(`ip:${ip}`, 100, 15 * 60 * 1000);
         const input = await body(req);
         if (route === "POST /api/register") {
-          limit(`register:${ip}`, 5, 60 * 60 * 1000);
+          await limit(`register:${ip}`, 5, 60 * 60 * 1000);
           const name = text(input.name, "o nome", 100, 2);
           const address = email(input.email);
           const secret = password(input.password, input.confirmPassword);
@@ -347,79 +380,88 @@ export function createApp({
             );
           const hash = await hashPassword(secret);
           const id = randomUUID();
-          const value = transaction(db, () => {
-            if (db.prepare("SELECT 1 FROM users WHERE email = ?").get(address))
+          const value = await transaction(db, async () => {
+            if (
+              await db
+                .prepare("SELECT 1 FROM users WHERE email = ?")
+                .get(address)
+            )
               throw new HttpError(
                 409,
                 "Não foi possível criar a conta. Tente entrar ou recuperar sua senha.",
               );
-            db.prepare("INSERT INTO users VALUES (?, ?, ?, ?, ?, ?, ?)").run(
-              id,
-              address,
-              name,
-              hash,
-              "2026-10-19",
-              now(),
-              now(),
-            );
-            return addSession(id);
+            await db
+              .prepare("INSERT INTO users VALUES (?, ?, ?, ?, ?, ?, ?)")
+              .run(id, address, name, hash, "2026-10-25", now(), now());
+            return await addSession(id);
           });
           setCookie(res, value);
           return json(res, 201, {
-            user: account(
-              db.prepare("SELECT * FROM users WHERE id = ?").get(id),
+            user: await account(
+              await db.prepare("SELECT * FROM users WHERE id = ?").get(id),
             ),
           });
         }
         if (route === "POST /api/login") {
-          limit(`login:${ip}`, 30, 15 * 60 * 1000);
+          await limit(`login:${ip}`, 30, 15 * 60 * 1000);
           const address = email(input.email);
           const accountKey = `account:${hashed(address)}`;
-          limit(accountKey, 10, 15 * 60 * 1000);
+          await limit(accountKey, 10, 15 * 60 * 1000);
           if (typeof input.password !== "string" || input.password.length > 128)
             throw new HttpError(400, "Informe sua senha.");
-          const user = db
+          const user = await db
             .prepare("SELECT * FROM users WHERE email = ?")
             .get(address);
           const matches = await verifyPassword(
             input.password,
             user?.password_hash || dummyHash,
           );
-          const current =
-            user &&
-            db
-              .prepare("SELECT password_hash FROM users WHERE id = ?")
-              .get(user.id);
-          if (
-            !matches ||
-            !user ||
-            current?.password_hash !== user.password_hash
-          )
+          if (!matches || !user)
             throw new HttpError(401, "E-mail ou senha incorretos.");
-          db.prepare("DELETE FROM rate_limits WHERE key = ?").run(accountKey);
-          const previous = session(req);
-          if (previous)
-            db.prepare("DELETE FROM sessions WHERE token_hash = ?").run(
-              previous.session_hash,
-            );
-          setCookie(res, addSession(user.id));
-          return json(res, 200, { user: account(user) });
+          const value = await transaction(
+            db,
+            async () => {
+              const current = await db
+                .prepare("SELECT password_hash FROM users WHERE id = ?")
+                .get(user.id);
+              if (current?.password_hash !== user.password_hash)
+                throw new HttpError(401, "E-mail ou senha incorretos.");
+              await db
+                .prepare("DELETE FROM rate_limits WHERE key = ?")
+                .run(accountKey);
+              const previous = await session(req);
+              if (previous)
+                await db
+                  .prepare("DELETE FROM sessions WHERE token_hash = ?")
+                  .run(previous.session_hash);
+              return addSession(user.id);
+            },
+            user.id,
+          );
+          setCookie(res, value);
+          return json(res, 200, {
+            user: await account(user),
+          });
         }
         if (route === "POST /api/logout") {
-          const user = session(req);
+          const user = await session(req);
           if (user)
-            db.prepare("DELETE FROM sessions WHERE token_hash = ?").run(
-              user.session_hash,
-            );
+            await db
+              .prepare("DELETE FROM sessions WHERE token_hash = ?")
+              .run(user.session_hash);
           clearCookie(res);
-          return json(res, 200, { message: "Você saiu da conta." });
+          return json(res, 200, {
+            message: "Você saiu da conta.",
+          });
         }
         if (route === "PUT /api/profile") {
-          const user = requireUser(req);
+          const user = await requireUser(req);
           const validated = profile(input);
-          db.prepare(
-            `INSERT INTO profiles VALUES (?, ?, ?) ON CONFLICT(user_id) DO UPDATE SET payload=excluded.payload, updated_at=excluded.updated_at`,
-          ).run(user.id, encrypt(validated, key, user.id), now());
+          await db
+            .prepare(
+              `INSERT INTO profiles VALUES (?, ?, ?) ON CONFLICT(user_id) DO UPDATE SET payload=excluded.payload, updated_at=excluded.updated_at`,
+            )
+            .run(user.id, encrypt(validated, key, user.id), now());
           return json(res, 200, {
             profile: validated,
             updatedAt: new Date(now()).toISOString(),
@@ -431,18 +473,16 @@ export function createApp({
               503,
               "A recuperação por e-mail ainda não foi configurada nesta instalação.",
             );
-          limit(`recover:${ip}`, 5, 15 * 60 * 1000);
+          await limit(`recover:${ip}`, 5, 15 * 60 * 1000);
           const address = email(input.email);
-          const user = db
+          const user = await db
             .prepare("SELECT * FROM users WHERE email = ?")
             .get(address);
           if (user) {
             const value = token();
-            db.prepare("INSERT INTO resets VALUES (?, ?, ?)").run(
-              digest(value),
-              user.id,
-              now() + 30 * 60 * 1000,
-            );
+            await db
+              .prepare("INSERT INTO resets VALUES (?, ?, ?)")
+              .run(digest(value), user.id, now() + 30 * 60 * 1000);
             // Respond uniformly. No recipient, message body or token is written to logs.
             const task = Promise.resolve()
               .then(() =>
@@ -451,10 +491,10 @@ export function createApp({
                   url: `${origin}/redefinir-senha.html#token=${value}`,
                 }),
               )
-              .catch(() => {
-                db.prepare("DELETE FROM resets WHERE token_hash = ?").run(
-                  digest(value),
-                );
+              .catch(async () => {
+                await db
+                  .prepare("DELETE FROM resets WHERE token_hash = ?")
+                  .run(digest(value));
                 console.error(
                   "Não foi possível enviar um e-mail de recuperação. Verifique o serviço SMTP.",
                 );
@@ -465,20 +505,21 @@ export function createApp({
           return json(res, 200, recoveryResponse);
         }
         if (route === "POST /api/reset") {
-          limit(`reset:${ip}`, 10, 15 * 60 * 1000);
+          await limit(`reset:${ip}`, 10, 15 * 60 * 1000);
           if (!/^[a-f0-9]{64}$/.test(input.token || ""))
             throw new HttpError(
               400,
               "Link de recuperação inválido ou expirado. Solicite um novo link.",
             );
           const tokenHash = digest(input.token);
-          const valid = () =>
-            db
+          const valid = async () =>
+            await db
               .prepare(
                 "SELECT * FROM resets WHERE token_hash = ? AND expires_at > ?",
               )
               .get(tokenHash, now());
-          if (!valid())
+          const initial = await valid();
+          if (!initial)
             throw new HttpError(
               400,
               "Link de recuperação inválido ou expirado. Solicite um novo link.",
@@ -486,32 +527,35 @@ export function createApp({
           const hash = await hashPassword(
             password(input.password, input.confirmPassword),
           );
-          transaction(db, () => {
-            const reset = valid();
-            if (!reset)
-              throw new HttpError(
-                400,
-                "Link de recuperação inválido ou expirado. Solicite um novo link.",
-              );
-            db.prepare("UPDATE users SET password_hash = ? WHERE id = ?").run(
-              hash,
-              reset.user_id,
-            );
-            db.prepare("DELETE FROM sessions WHERE user_id = ?").run(
-              reset.user_id,
-            );
-            db.prepare("DELETE FROM resets WHERE user_id = ?").run(
-              reset.user_id,
-            );
-          });
+          await transaction(
+            db,
+            async () => {
+              const reset = await valid();
+              if (!reset)
+                throw new HttpError(
+                  400,
+                  "Link de recuperação inválido ou expirado. Solicite um novo link.",
+                );
+              await db
+                .prepare("UPDATE users SET password_hash = ? WHERE id = ?")
+                .run(hash, reset.user_id);
+              await db
+                .prepare("DELETE FROM sessions WHERE user_id = ?")
+                .run(reset.user_id);
+              await db
+                .prepare("DELETE FROM resets WHERE user_id = ?")
+                .run(reset.user_id);
+            },
+            initial.user_id,
+          );
           clearCookie(res);
           return json(res, 200, {
             message: "Senha atualizada. Entre novamente com a nova senha.",
           });
         }
         if (route === "DELETE /api/account") {
-          const user = requireUser(req);
-          limit(`delete:${ip}`, 5, 15 * 60 * 1000);
+          const user = await requireUser(req);
+          await limit(`delete:${ip}`, 5, 15 * 60 * 1000);
           if (
             input.confirmation !== "EXCLUIR" ||
             typeof input.password !== "string" ||
@@ -526,18 +570,24 @@ export function createApp({
               401,
               "Senha incorreta. A conta foi preservada.",
             );
-          if (session(req)?.password_hash !== user.password_hash)
-            throw new HttpError(
-              401,
-              "Sua sessão mudou. Entre novamente antes de excluir a conta.",
-            );
-          transaction(db, () => {
-            db.prepare("DELETE FROM users WHERE id = ?").run(user.id);
-            db.prepare("DELETE FROM rate_limits WHERE key = ?").run(
-              `account:${hashed(user.email)}`,
-            );
-          });
-          db.exec("PRAGMA wal_checkpoint(TRUNCATE)");
+          await transaction(
+            db,
+            async () => {
+              if ((await session(req))?.password_hash !== user.password_hash)
+                throw new HttpError(
+                  401,
+                  "Sua sessão mudou. Entre novamente antes de excluir a conta.",
+                );
+
+              await db.prepare("DELETE FROM users WHERE id = ?").run(user.id);
+              await db
+                .prepare("DELETE FROM rate_limits WHERE key = ?")
+                .run(`account:${hashed(user.email)}`);
+            },
+            user.id,
+          );
+          if (db.dialect !== "postgres")
+            db.exec("PRAGMA wal_checkpoint(TRUNCATE)");
           clearCookie(res);
           return json(res, 200, {
             message:
@@ -556,22 +606,30 @@ export function createApp({
       if (!publicFiles.has(file))
         throw new HttpError(404, "Página não encontrada.");
       if (privatePages.has(file)) {
-        const user = session(req);
+        const user = await session(req);
         if (!user) {
-          res.writeHead(303, { Location: "/entrar.html" });
+          res.writeHead(303, {
+            Location: "/entrar.html",
+          });
           return res.end();
         }
-        if (file === "perfil.html" && !hasProfile(user)) {
-          res.writeHead(303, { Location: "/configurar-perfil.html" });
+        if (file === "perfil.html" && !(await hasProfile(user))) {
+          res.writeHead(303, {
+            Location: "/configurar-perfil.html",
+          });
           return res.end();
         }
       }
       const content = await readFile(fileURLToPath(new URL(file, root)));
-      res.writeHead(200, { "Content-Type": mime[file.split(".").pop()] });
+      res.writeHead(200, {
+        "Content-Type": mime[file.split(".").pop()],
+      });
       res.end(req.method === "HEAD" ? undefined : content);
     } catch (error) {
       if (error instanceof URIError)
-        return json(res, 400, { message: "Endereço inválido." });
+        return json(res, 400, {
+          message: "Endereço inválido.",
+        });
       const status = error.status || 500;
       if (status === 429) res.setHeader("Retry-After", "900");
       if (status === 500)
@@ -587,17 +645,25 @@ export function createApp({
         });
       else res.end();
     }
-  });
+  };
+  const handler = async (req, res) => {
+    await handle(req, res);
+    // Keep the serverless invocation alive until SMTP settles and a failed token
+    // is invalidated. Local HTTP behavior remains uniform for account privacy.
+    await Promise.allSettled([...pendingMail]);
+  };
+  const server = createServer(handler);
   server.requestTimeout = 15000;
   server.headersTimeout = 10000;
   server.maxHeadersCount = 50;
   return {
     server,
+    handler,
     db,
     async close() {
       await new Promise((resolve) => server.close(resolve));
       await Promise.allSettled([...pendingMail]);
-      db.close();
+      await db.close();
     },
   };
 }

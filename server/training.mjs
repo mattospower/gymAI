@@ -1,8 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { HttpError, text, encrypt, decrypt } from "./security.mjs";
-import { transaction } from "./store.mjs";
+import { asyncTransaction as transaction } from "./database.mjs";
 import { exercises, exerciseById } from "./exercises.mjs";
-
 const fail = (message) => {
   throw new HttpError(400, message);
 };
@@ -68,10 +67,9 @@ export function validatePlan(input) {
     ),
   };
 }
-
 export function trainingRoutes({ db, key, now }) {
-  const planRow = (id, userId) => {
-    const row = db
+  const planRow = async (id, userId) => {
+    const row = await db
       .prepare("SELECT * FROM training_plans WHERE id=? AND user_id=?")
       .get(id, userId);
     if (!row) throw new HttpError(404, "Plano não encontrado.");
@@ -85,8 +83,8 @@ export function trainingRoutes({ db, key, now }) {
     updatedAt: row.updated_at,
     ...decrypt(row.payload, key, `plan:${row.user_id}:${row.id}`),
   });
-  const workoutRow = (id, userId) => {
-    const row = db
+  const workoutRow = async (id, userId) => {
+    const row = await db
       .prepare("SELECT * FROM workout_logs WHERE id=? AND user_id=?")
       .get(id, userId);
     if (!row) throw new HttpError(404, "Registro não encontrado.");
@@ -109,32 +107,40 @@ export function trainingRoutes({ db, key, now }) {
       );
   };
   // Insert columns explicitly: never depend on the order of future migrations.
-  const insertPlan = (userId, data) => {
+  const insertPlan = async (userId, data) => {
     if (
-      db
-        .prepare("SELECT count(*) AS n FROM training_plans WHERE user_id=?")
-        .get(userId).n >= 100
+      (
+        await db
+          .prepare("SELECT count(*) AS n FROM training_plans WHERE user_id=?")
+          .get(userId)
+      ).n >= 100
     )
       fail("Limite de 100 planos atingido.");
     const id = randomUUID();
-    db.prepare(
-      "INSERT INTO training_plans (id,user_id,status,payload,version,created_at,updated_at) VALUES (?,?,?,?,1,?,?)",
-    ).run(
-      id,
-      userId,
-      "saved",
-      encrypt(data, key, `plan:${userId}:${id}`),
-      now(),
-      now(),
-    );
-    return unpackPlan(planRow(id, userId));
+    await db
+      .prepare(
+        "INSERT INTO training_plans (id,user_id,status,payload,version,created_at,updated_at) VALUES (?,?,?,?,1,?,?)",
+      )
+      .run(
+        id,
+        userId,
+        "saved",
+        encrypt(data, key, `plan:${userId}:${id}`),
+        now(),
+        now(),
+      );
+    return unpackPlan(await planRow(id, userId));
   };
-  return function dispatch(method, url, user, input = {}) {
+  return async function dispatch(method, url, user, input = {}) {
     const path = url.pathname;
     if (method === "GET" && path === "/api/plan-templates")
       return {
         templates: [
-          { id: "livre", name: "Uma sessão livre", sessions: ["Sessão livre"] },
+          {
+            id: "livre",
+            name: "Uma sessão livre",
+            sessions: ["Sessão livre"],
+          },
           {
             id: "alternadas",
             name: "Organização A / B",
@@ -158,8 +164,8 @@ export function trainingRoutes({ db, key, now }) {
       /^\/api\/plans\/([0-9a-f-]{36})\/versions(?:\/(\d+))?$/i,
     );
     if (method === "GET" && vm) {
-      planRow(vm[1], user.id);
-      const rows = db
+      await planRow(vm[1], user.id);
+      const rows = await db
         .prepare(
           "SELECT * FROM plan_versions WHERE plan_id=? AND user_id=? ORDER BY version DESC",
         )
@@ -187,7 +193,7 @@ export function trainingRoutes({ db, key, now }) {
       };
     }
     if (method === "GET" && path === "/api/training-context") {
-      const row = db
+      const row = await db
         .prepare("SELECT payload FROM profiles WHERE user_id=?")
         .get(user.id);
       const data = row ? decrypt(row.payload, key, user.id) : null;
@@ -207,41 +213,53 @@ export function trainingRoutes({ db, key, now }) {
           : null,
       };
     }
-    if (method === "GET" && path === "/api/exercises") return { exercises };
+    if (method === "GET" && path === "/api/exercises")
+      return {
+        exercises,
+      };
     if (method === "GET" && path === "/api/plans")
       return {
-        plans: db
-          .prepare(
-            "SELECT * FROM training_plans WHERE user_id=? ORDER BY updated_at DESC,id",
-          )
-          .all(user.id)
-          .map(unpackPlan),
+        plans: (
+          await db
+            .prepare(
+              "SELECT * FROM training_plans WHERE user_id=? ORDER BY updated_at DESC,id",
+            )
+            .all(user.id)
+        ).map(unpackPlan),
       };
     if (method === "POST" && path === "/api/plans")
-      return { plan: insertPlan(user.id, validatePlan(input)) };
+      return {
+        plan: await insertPlan(user.id, validatePlan(input)),
+      };
     const planMatch = path.match(
       /^\/api\/plans\/([0-9a-f-]{36})(?:\/(duplicate|archive|restore|activate))?$/i,
     );
     if (planMatch) {
       const [, id, action] = planMatch,
-        row = planRow(id, user.id);
-      if (method === "GET" && !action) return { plan: unpackPlan(row) };
+        row = await planRow(id, user.id);
+      if (method === "GET" && !action)
+        return {
+          plan: unpackPlan(row),
+        };
       checkVersion(input, row);
       if (method === "PUT" && !action) {
         if (row.status === "archived") fail("Reative o plano antes de editar.");
         const data = validatePlan(input);
-        db.prepare(
-          "UPDATE training_plans SET payload=?,version=version+1,updated_at=? WHERE id=? AND user_id=?",
-        ).run(encrypt(data, key, `plan:${user.id}:${id}`), now(), id, user.id);
-        return { plan: unpackPlan(planRow(id, user.id)) };
+        await db
+          .prepare(
+            "UPDATE training_plans SET payload=?,version=version+1,updated_at=? WHERE id=? AND user_id=?",
+          )
+          .run(encrypt(data, key, `plan:${user.id}:${id}`), now(), id, user.id);
+        return {
+          plan: unpackPlan(await planRow(id, user.id)),
+        };
       }
       if (method === "DELETE" && !action) {
         if (input.confirmation !== "EXCLUIR")
           fail("Digite EXCLUIR para confirmar. O histórico será preservado.");
-        db.prepare("DELETE FROM training_plans WHERE id=? AND user_id=?").run(
-          id,
-          user.id,
-        );
+        await db
+          .prepare("DELETE FROM training_plans WHERE id=? AND user_id=?")
+          .run(id, user.id);
         return {
           message:
             "Plano excluído. Os registros do histórico foram preservados.",
@@ -256,7 +274,9 @@ export function trainingRoutes({ db, key, now }) {
             e.id = randomUUID();
           });
         });
-        return { plan: insertPlan(user.id, validatePlan(data)) };
+        return {
+          plan: await insertPlan(user.id, validatePlan(data)),
+        };
       }
       if (
         method === "POST" &&
@@ -264,25 +284,31 @@ export function trainingRoutes({ db, key, now }) {
       ) {
         if (action === "activate" && row.status === "archived")
           fail("Reative o plano antes de defini-lo como ativo.");
-        transaction(db, () => {
+        await transaction(db, async () => {
           if (action === "activate")
-            db.prepare(
-              "UPDATE training_plans SET status='saved',version=version+1,updated_at=? WHERE user_id=? AND status='active' AND id<>?",
-            ).run(now(), user.id, id);
-          db.prepare(
-            "UPDATE training_plans SET status=?,version=version+1,updated_at=? WHERE id=? AND user_id=?",
-          ).run(
-            action === "activate"
-              ? "active"
-              : action === "archive"
-                ? "archived"
-                : "saved",
-            now(),
-            id,
-            user.id,
-          );
+            await db
+              .prepare(
+                "UPDATE training_plans SET status='saved',version=version+1,updated_at=? WHERE user_id=? AND status='active' AND id<>?",
+              )
+              .run(now(), user.id, id);
+          await db
+            .prepare(
+              "UPDATE training_plans SET status=?,version=version+1,updated_at=? WHERE id=? AND user_id=?",
+            )
+            .run(
+              action === "activate"
+                ? "active"
+                : action === "archive"
+                  ? "archived"
+                  : "saved",
+              now(),
+              id,
+              user.id,
+            );
         });
-        return { plan: unpackPlan(planRow(id, user.id)) };
+        return {
+          plan: unpackPlan(await planRow(id, user.id)),
+        };
       }
     }
     if (method === "GET" && path === "/api/workouts") {
@@ -323,7 +349,10 @@ export function trainingRoutes({ db, key, now }) {
       const pageSize = Number(url.searchParams.get("limit") || 500);
       if (!Number.isInteger(pageSize) || pageSize < 1 || pageSize > 500)
         fail("Escolha de 1 a 500 registros por página.");
-      let cursor = { t: 0, id: "" };
+      let cursor = {
+        t: 0,
+        id: "",
+      };
       const encoded = url.searchParams.get("cursor") || "";
       if (encoded) {
         try {
@@ -334,7 +363,7 @@ export function trainingRoutes({ db, key, now }) {
         if (!Number.isSafeInteger(cursor.t) || cursor.t < 0 || !uuid(cursor.id))
           fail("Página inválida.");
       }
-      const rows = db
+      const rows = await db
         .prepare(
           "SELECT * FROM workout_logs WHERE user_id=? AND started_at>=? AND started_at<? AND (? IS NULL OR plan_ref=?) AND (?='' OR started_at<? OR (started_at=? AND id>?)) ORDER BY started_at DESC,id LIMIT ?",
         )
@@ -357,7 +386,10 @@ export function trainingRoutes({ db, key, now }) {
         workouts: rows.map(unpackWorkout),
         nextCursor: more
           ? Buffer.from(
-              JSON.stringify({ t: last.started_at, id: last.id }),
+              JSON.stringify({
+                t: last.started_at,
+                id: last.id,
+              }),
             ).toString("base64url")
           : null,
       };
@@ -365,7 +397,7 @@ export function trainingRoutes({ db, key, now }) {
     if (method === "POST" && path === "/api/workouts") {
       if (!uuid(input.planId) || !uuid(input.sessionId))
         fail("Selecione um plano e uma sessão válidos.");
-      const plan = unpackPlan(planRow(input.planId, user.id));
+      const plan = unpackPlan(await planRow(input.planId, user.id));
       if (plan.status === "archived")
         fail("Reative o plano para iniciar uma sessão.");
       const session = plan.sessions.find(
@@ -373,7 +405,7 @@ export function trainingRoutes({ db, key, now }) {
       );
       if (!session || !session.exercises.length)
         fail("Adicione exercícios à sessão antes de iniciar.");
-      const existing = db
+      const existing = await db
         .prepare(
           "SELECT * FROM workout_logs WHERE user_id=? AND status='in_progress'",
         )
@@ -397,31 +429,43 @@ export function trainingRoutes({ db, key, now }) {
         records: snapshot.exercises.map((e) => ({
           entryId: e.id,
           notes: "",
-          sets: Array.from({ length: e.sets }, () => ({
-            completed: false,
-            value: null,
-            load: null,
-          })),
+          sets: Array.from(
+            {
+              length: e.sets,
+            },
+            () => ({
+              completed: false,
+              value: null,
+              load: null,
+            }),
+          ),
         })),
       };
       const id = randomUUID();
-      db.prepare(
-        "INSERT INTO workout_logs (id,user_id,plan_id,plan_ref,status,payload,version,started_at) VALUES (?,?,?,?,?,?,1,?)",
-      ).run(
-        id,
-        user.id,
-        plan.id,
-        plan.id,
-        "in_progress",
-        encrypt(data, key, `workout:${user.id}:${id}`),
-        now(),
-      );
-      return { workout: unpackWorkout(workoutRow(id, user.id)) };
+      await db
+        .prepare(
+          "INSERT INTO workout_logs (id,user_id,plan_id,plan_ref,status,payload,version,started_at) VALUES (?,?,?,?,?,?,1,?)",
+        )
+        .run(
+          id,
+          user.id,
+          plan.id,
+          plan.id,
+          "in_progress",
+          encrypt(data, key, `workout:${user.id}:${id}`),
+          now(),
+        );
+      return {
+        workout: unpackWorkout(await workoutRow(id, user.id)),
+      };
     }
     const match = path.match(/^\/api\/workouts\/([0-9a-f-]{36})$/i);
     if (match) {
-      const row = workoutRow(match[1], user.id);
-      if (method === "GET") return { workout: unpackWorkout(row) };
+      const row = await workoutRow(match[1], user.id);
+      if (method === "GET")
+        return {
+          workout: unpackWorkout(row),
+        };
       if (method === "PUT") {
         checkVersion(input, row);
         if (row.status !== "in_progress")
@@ -479,7 +523,11 @@ export function trainingRoutes({ db, key, now }) {
                 fail(
                   "Informe repetições ou duração para marcar a série como concluída.",
                 );
-              return { completed: set.completed, value, load };
+              return {
+                completed: set.completed,
+                value,
+                load,
+              };
             }),
           };
         });
@@ -488,16 +536,20 @@ export function trainingRoutes({ db, key, now }) {
           notes: text(input.notes ?? "", "as observações da sessão", 1000, 0),
           records,
         };
-        db.prepare(
-          "UPDATE workout_logs SET payload=?,status=?,version=version+1,finished_at=? WHERE id=? AND user_id=?",
-        ).run(
-          encrypt(payload, key, `workout:${user.id}:${row.id}`),
-          input.status,
-          input.status === "in_progress" ? null : now(),
-          row.id,
-          user.id,
-        );
-        return { workout: unpackWorkout(workoutRow(row.id, user.id)) };
+        await db
+          .prepare(
+            "UPDATE workout_logs SET payload=?,status=?,version=version+1,finished_at=? WHERE id=? AND user_id=?",
+          )
+          .run(
+            encrypt(payload, key, `workout:${user.id}:${row.id}`),
+            input.status,
+            input.status === "in_progress" ? null : now(),
+            row.id,
+            user.id,
+          );
+        return {
+          workout: unpackWorkout(await workoutRow(row.id, user.id)),
+        };
       }
     }
     throw new HttpError(404, "Recurso de treino não encontrado.");
