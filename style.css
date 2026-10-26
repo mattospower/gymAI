@@ -368,3 +368,29 @@ details summary{cursor:pointer;font-weight:600;line-height:1.4}
 #draft-fields{margin-top:28px}
 @media(max-width:900px){.metric-grid{grid-template-columns:minmax(0,1fr)}.calendar-grid{grid-template-columns:repeat(4,minmax(0,1fr))}.calendar-spacer{display:none}.data-bar{grid-template-columns:90px minmax(0,1fr)}.data-bar span{grid-column:1/-1}.data-bar progress:nth-of-type(2){grid-column:2}}
 @media(max-width:560px){.calendar-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.calendar-day{min-height:120px}.table-scroll table{font-size:12px}.table-scroll th,.table-scroll td{padding:10px 4px}}
+
+/* Etapa 4: organização e impressão, mantendo os tokens do tema. */
+#plan-form>.form-card{margin-bottom:24px}
+#plan-form>.form-card>.btn{margin-top:14px;margin-right:10px}
+#plan-form>.form-card>.btn{white-space:normal;max-width:100%}
+.page-heading h1{overflow-wrap:anywhere}
+#plan-comparison td{white-space:pre-line}
+.planned-session>.section-heading>.field{max-width:190px}
+.report-workout{border-top:1px solid var(--line);padding-top:24px;margin-top:24px;break-inside:avoid}
+.report-workout h3{font-size:20px}
+.report-controls{margin-bottom:24px}
+#recurrence-fields{margin:24px 0}
+#recurrence-fields>.field{margin-top:18px}
+#print-report{display:none}
+@media(max-width:560px){.planned-session>.section-heading{align-items:stretch}.planned-session>.section-heading>.field{max-width:none;width:100%}.training-actions>.btn{min-height:44px}}
+@media print{
+  body{background:white;color:#050F26}
+  body:has(#print-report)>*:not(#print-report){display:none!important}
+  #print-report{display:block!important;background:white;color:#050F26;padding:0;font:11pt 'DM Sans',sans-serif}
+  #print-report h1{font-size:24pt;margin-bottom:18pt}
+  #print-report h2{font-size:16pt;margin:20pt 0 8pt}
+  #print-report .table-scroll{overflow:visible}
+  #print-report table{width:100%;font-size:9pt}
+  #print-report th,#print-report td{padding:6pt;border-bottom:1px solid #ccc}
+  @page{margin:16mm}
+}

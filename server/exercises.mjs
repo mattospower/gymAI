@@ -1,5 +1,6 @@
 // Resumos próprios; referências de técnica consultadas em 19/10/2026.
 // Não são prescrições. Não são usados vídeos, fotografias ou textos copiados.
+import { exerciseAdditions } from "./exercise-additions.mjs";
 const ace = (id, slug) =>
   `https://www.acefitness.org/resources/everyone/exercise-library/${id}/${slug}/`;
 export const exercises = [
@@ -204,6 +205,28 @@ exercises.push(
     source: ace(23, "ankle-flexion"),
   },
 );
+exercises.push(...exerciseAdditions);
+for (const e of exercises) {
+  e.group ||=
+    e.category === "Mobilidade"
+      ? "Mobilidade"
+      : e.equipment.includes("maquinas")
+        ? "Máquinas"
+        : e.equipment.includes("peso-corporal")
+          ? "Peso corporal"
+          : "Pesos livres";
+  e.sourceName = new URL(e.source).hostname.includes("acefitness")
+    ? "ACE Exercise Library"
+    : new URL(e.source).hostname.includes("nhs.uk")
+      ? "NHS"
+      : new URL(e.source).hostname.includes("illinois")
+        ? "University of Illinois"
+        : new URL(e.source).hostname.includes("uclahealth")
+          ? "UCLA Health"
+          : new URL(e.source).hostname.includes("cardiosmart")
+            ? "American College of Cardiology"
+            : "American Heart Association";
+}
 export const exerciseById = new Map(
   exercises.map((exercise) => [exercise.id, exercise]),
 );

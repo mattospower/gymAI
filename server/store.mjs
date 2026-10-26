@@ -8,7 +8,7 @@ export function openStore(path, key) {
     mkdirSync(dirname(path), { recursive: true, mode: 0o700 });
   const db = new DatabaseSync(path, { timeout: 5000 });
   const version = db.prepare("PRAGMA user_version").get().user_version;
-  if (version > 3) {
+  if (version > 4) {
     db.close();
     throw new Error("Banco criado por uma versão mais recente do GymIA.");
   }
@@ -98,6 +98,46 @@ export function openStore(path, key) {
     CREATE INDEX drafts_owner ON ai_drafts(user_id,expires_at);
     PRAGMA user_version = 3;
   `),
+      );
+    if (version < 4)
+      transaction(db, () =>
+        db.exec(`
+      CREATE TABLE calendar_series (
+        id TEXT PRIMARY KEY, user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        payload TEXT NOT NULL, version INTEGER NOT NULL DEFAULT 1,
+        cancelled INTEGER NOT NULL DEFAULT 0, created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL
+      );
+      CREATE INDEX series_owner ON calendar_series(user_id);
+      CREATE TABLE calendar_occurrences (
+        series_id TEXT NOT NULL REFERENCES calendar_series(id) ON DELETE CASCADE,
+        date TEXT NOT NULL, event_id TEXT UNIQUE REFERENCES calendar_events(id) ON DELETE SET NULL,
+        exception INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(series_id,date)
+      );
+      CREATE TABLE calendar_links (
+        event_id TEXT PRIMARY KEY REFERENCES calendar_events(id) ON DELETE CASCADE,
+        workout_id TEXT NOT NULL UNIQUE REFERENCES workout_logs(id) ON DELETE CASCADE,
+        user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE
+      );
+      CREATE INDEX links_owner ON calendar_links(user_id);
+      CREATE TABLE plan_versions (
+        plan_id TEXT NOT NULL REFERENCES training_plans(id) ON DELETE CASCADE,
+        user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        version INTEGER NOT NULL, status TEXT NOT NULL, payload TEXT NOT NULL,
+        created_at INTEGER NOT NULL, PRIMARY KEY(plan_id,version)
+      );
+      CREATE INDEX versions_owner ON plan_versions(user_id,plan_id);
+      INSERT INTO plan_versions SELECT id,user_id,version,status,payload,updated_at FROM training_plans;
+      CREATE TRIGGER plan_created_version AFTER INSERT ON training_plans BEGIN
+        INSERT INTO plan_versions VALUES(NEW.id,NEW.user_id,NEW.version,NEW.status,NEW.payload,NEW.updated_at);
+      END;
+      CREATE TRIGGER plan_updated_version AFTER UPDATE ON training_plans WHEN NEW.version<>OLD.version BEGIN
+        INSERT INTO plan_versions VALUES(NEW.id,NEW.user_id,NEW.version,NEW.status,NEW.payload,NEW.updated_at);
+        DELETE FROM plan_versions WHERE plan_id=NEW.id AND version NOT IN
+          (SELECT version FROM plan_versions WHERE plan_id=NEW.id ORDER BY version DESC LIMIT 30);
+      END;
+      CREATE INDEX workouts_owner_plan_date ON workout_logs(user_id,plan_ref,started_at DESC,id);
+      PRAGMA user_version=4;
+    `),
       );
   } catch (error) {
     db.close();

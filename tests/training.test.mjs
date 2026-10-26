@@ -133,7 +133,7 @@ test("Etapa 2: migração, planos, sessões, histórico e privacidade", async (t
         );
         assert.equal(
           app.db.prepare("PRAGMA user_version").get().user_version,
-          3,
+          4,
         );
         assert.equal(
           (await request("/api/session")).body.user.name,
@@ -170,11 +170,18 @@ test("Etapa 2: migração, planos, sessões, histórico e privacidade", async (t
       "Biblioteca tem referências e criação valida dados no servidor",
       async () => {
         const library = (await request("/api/exercises")).body.exercises;
-        assert.equal(library.length, 16);
+        assert.equal(library.length, 40);
         assert.ok(
           library.every(
             (e) =>
-              e.source.startsWith("https://www.acefitness.org/") &&
+              [
+                "www.acefitness.org",
+                "www.nhs.uk",
+                "eat-move-save.extension.illinois.edu",
+                "www.cardiosmart.org",
+                "www.uclahealth.org",
+                "www.heart.org",
+              ].includes(new URL(e.source).hostname) &&
               e.guidance &&
               e.category,
           ),

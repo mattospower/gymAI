@@ -1,0 +1,11 @@
+.env
+.env.*
+!.env.example
+data
+test-results
+playwright-report
+tests
+.git
+*.sqlite*
+*.log
+backups
