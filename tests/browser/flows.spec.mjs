@@ -3,7 +3,7 @@ import AxeBuilder from "@axe-core/playwright";
 import { readdir, readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { randomBytes } from "node:crypto";
-import { createApp } from "../../server/app.mjs";
+import { createTestApp as createApp } from "../helpers/app.mjs";
 
 const consoleErrors = new WeakMap();
 const auditing = new WeakMap();
@@ -121,7 +121,7 @@ test("Recuperação completa no navegador com entrega capturada apenas no teste"
 }) => {
   const origin = "http://localhost:3103";
   const inbox = [];
-  const app = createApp({
+  const app = await createApp({
     origin,
     databasePath: ":memory:",
     encryptionKey: randomBytes(32).toString("hex"),

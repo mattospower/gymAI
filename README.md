@@ -1,6 +1,9 @@
-# gymAI — etapa 4
+# GymIA — Etapas 1–4 e publicação na Vercel
 
-A Etapa 4 acrescenta recorrência semanal, vínculo opcional entre calendário e execução, biblioteca de 40 atividades, modelos editáveis, comparação de versões, histórico paginado e relatórios CSV/JSON com impressão. Consulte [o guia da Etapa 4](docs/ETAPA4.md) para limites, migração v4, atualização e restauração. Esta branch depende da Etapa 3; enquanto ela não estiver na main, o PR deve ter como base `feat/etapa-3-evolucao-gymia`.
+Esta branch acrescenta PostgreSQL persistente, função Node 24 e build para a Vercel, mantendo o SQLite local e o visual original. Consulte [o guia de publicação](docs/DEPLOY-VERCEL.md) para variáveis, banco gratuito, migração autorizada, backup/restauração, testes e configuração exata da branch. A publicação externa depende de acesso autenticado aos serviços.
+
+
+A Etapa 4 acrescenta recorrência semanal, vínculo opcional entre calendário e execução, biblioteca de 40 atividades, modelos editáveis, comparação de versões, histórico paginado e relatórios CSV/JSON com impressão. Consulte [o guia da Etapa 4](docs/ETAPA4.md) para limites, migração v4, atualização e restauração. O PR da Etapa 4 depende da Etapa 3; o PR desta adaptação de hospedagem usa a base `feat/etapa-4-expansao-gymia`.
 
 Evolução do HTML/CSS original para contas, perfis, planos manuais e registros de treinamento. Preserva a paleta, as fontes Archivo, DM Sans e JetBrains Mono e os componentes da página inicial. Inclui calendário, estatísticas reais, exportação e assistente opcional com rascunhos sujeitos à revisão. O padrão é demonstração local sem chamadas externas. Consulte [a documentação da Etapa 3](docs/ETAPA3.md) para configuração, limites, dados enviados e atualização segura da Etapa 2.
 
@@ -29,11 +32,11 @@ O servidor atende o HTML original e a API na mesma origem. **Abrir arquivos dire
 
 ## Arquitetura e escolha
 
-HTML, CSS e JavaScript sem framework no navegador; servidor HTTP e SQLite nativos do Node; **Nodemailer é a única dependência de execução**. Não há SDK de IA nem serviços contratados. O adaptador opcional usa fetch no servidor e precisa ser explicitamente habilitado.
+HTML, CSS e JavaScript sem framework no navegador; servidor HTTP e SQLite nativos do Node; Nodemailer envia e-mails e pg acessa PostgreSQL; o caminho local mantém SQLite nativo. Não há SDK de IA nem serviços contratados. O adaptador opcional usa fetch no servidor e precisa ser explicitamente habilitado.
 
 Esta escolha permite executar e verificar contas e persistência sem criar um serviço externo. SQLite atende a um piloto acadêmico pequeno, em uma única instância com disco persistente. Não é uma arquitetura para múltiplas réplicas ou alto volume. O `node:sqlite` é uma API ainda em evolução; a versão mínima é explícita e deve ser atualizada com os patches de segurança do Node.
 
-Supabase/Firebase também permitiriam contas reais, mas exigiriam a criação de projeto, configuração de regras de acesso, e-mails e credenciais antes de verificar os fluxos completos. Podem ser avaliados se o grupo precisar manter hospedagem exclusivamente estática. A versão atual requer um processo Node e disco persistente; não pressupõe que haverá hospedagem gratuita com essas características.
+O modo SQLite local requer processo Node e disco persistente. O modo Vercel desta branch usa funções Node e PostgreSQL externo persistente, com Neon Free como opção prevista. As contas e sessões continuam pertencendo à aplicação; não são substituídas pela autenticação de outro provedor. Consulte o guia de publicação para configuração e limites gratuitos atuais.
 
 ## Configuração
 
@@ -47,6 +50,8 @@ Copie os nomes de `.env.example`, sem publicar valores reais:
 | `APP_ORIGIN` | Origem exata, sem barra final, caminho ou parâmetros; HTTPS obrigatório em produção |
 | `DATA_ENCRYPTION_KEY` | Chave de 32 bytes em hexadecimal; gerada no setup local |
 | `DATABASE_PATH` | Caminho do SQLite, padrão `./data/gymia.sqlite` |
+| `DATABASE_URL` | PostgreSQL persistente; obrigatório na Vercel, vazio mantém o SQLite local |
+| `BACKUP_ENCRYPTION_KEY` | Chave separada de 32 bytes em hexadecimal para backups PostgreSQL |
 | `SMTP_HOST` | Servidor SMTP do provedor escolhido |
 | `SMTP_PORT` | `587` com STARTTLS obrigatório ou `465` com TLS direto |
 | `SMTP_USER` / `SMTP_PASSWORD` | Credenciais somente no servidor |
@@ -74,7 +79,7 @@ O cadastro não inclui confirmação de propriedade do e-mail nesta etapa. Use c
 
 ## Antes de disponibilizar a participantes externos
 
-Nenhuma publicação é feita por este projeto. A equipe precisa autorizar e preparar:
+Para uso local com SQLite, a equipe precisa preparar os itens abaixo. Para Vercel/PostgreSQL, siga o guia de publicação desta branch:
 
 1. Hospedagem com Node 24 e **volume persistente**, HTTPS e proxy que preserve o cabeçalho Host da origem configurada. Apenas o proxy deve alcançar a porta interna. O servidor não confia em `X-Forwarded-For`; atrás de proxy o limite por IP será compartilhado, então configure também proteção por IP no próprio proxy.
 2. Segredos de produção, acesso restrito aos arquivos e ao processo, backups criptografados com SQLite Backup API (ou processo parado), restauração testada e prazo explícito de retenção. Ao restaurar backup, reaplique exclusões de contas e revogue sessões/links antigos.

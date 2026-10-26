@@ -1,7 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { HttpError, text, encrypt, decrypt } from "./security.mjs";
 import { exerciseById } from "./exercises.mjs";
-
 import { dayMs, validDate, localDay, shiftDate, range } from "./dates.mjs";
 import { calendarRoutes } from "./calendar.mjs";
 import { reportResult } from "./reports.mjs";
@@ -10,8 +9,8 @@ const bad = (message) => {
   throw new HttpError(400, message);
 };
 export function evolutionRoutes({ db, key, now, training }) {
-  const preferences = (id) => {
-    const row = db
+  const preferences = async (id) => {
+    const row = await db
       .prepare("SELECT * FROM user_preferences WHERE user_id=?")
       .get(id);
     return row
@@ -38,23 +37,30 @@ export function evolutionRoutes({ db, key, now, training }) {
     finishedAt: row.finished_at,
     ...decrypt(row.payload, key, `workout:${row.user_id}:${row.id}`),
   });
-  const workouts = (id, from, to, planId = "") =>
-    db
-      .prepare(
-        "SELECT * FROM workout_logs WHERE user_id=? AND started_at>=? AND started_at<? AND (?='' OR plan_ref=?) ORDER BY started_at,id",
-      )
-      .all(
-        id,
-        from ? Date.parse(from) - 2 * dayMs : 0,
-        to ? Date.parse(to) + 3 * dayMs : Number.MAX_SAFE_INTEGER,
-        planId,
-        planId,
-      )
-      .map(unpackWorkout);
-  const calendar = calendarRoutes({ db, key, now, training, preferences });
-  const events = (id) => calendar.list(id);
-  const plan = (id, user) =>
-    training("GET", new URL("http://local/api/plans/" + id), user).plan;
+  const workouts = async (id, from, to, planId = "") =>
+    (
+      await db
+        .prepare(
+          "SELECT * FROM workout_logs WHERE user_id=? AND started_at>=? AND started_at<? AND (?='' OR plan_ref=?) ORDER BY started_at,id",
+        )
+        .all(
+          id,
+          from ? Date.parse(from) - 2 * dayMs : 0,
+          to ? Date.parse(to) + 3 * dayMs : Number.MAX_SAFE_INTEGER,
+          planId,
+          planId,
+        )
+    ).map(unpackWorkout);
+  const calendar = calendarRoutes({
+    db,
+    key,
+    now,
+    training,
+    preferences,
+  });
+  const events = async (id) => await calendar.list(id);
+  const plan = async (id, user) =>
+    (await training("GET", new URL("http://local/api/plans/" + id), user)).plan;
   const getRange = (url, prefs) => range(url, prefs, now);
   function aggregate(rows, from, to, prefs, exerciseId, status, planId) {
     const filtered = rows.filter(
@@ -77,8 +83,14 @@ export function evolutionRoutes({ db, key, now, training }) {
       return shiftDate(d, -((weekday - prefs.weekStart + 7) % 7));
     };
     for (let d = from; d <= to; d = shiftDate(d, 1)) {
-      weeks.set(weekKey(d), { completed: 0, partial: 0 });
-      months.set(d.slice(0, 7), { completed: 0, partial: 0 });
+      weeks.set(weekKey(d), {
+        completed: 0,
+        partial: 0,
+      });
+      months.set(d.slice(0, 7), {
+        completed: 0,
+        partial: 0,
+      });
     }
     for (const w of filtered) {
       const date = localDay(w.startedAt, prefs.timeZone);
@@ -136,8 +148,14 @@ export function evolutionRoutes({ db, key, now, training }) {
       averageGapDays: gaps.length
         ? gaps.reduce((a, b) => a + b, 0) / gaps.length
         : null,
-      weeks: [...weeks].map(([date, counts]) => ({ date, ...counts })),
-      months: [...months].map(([date, counts]) => ({ date, ...counts })),
+      weeks: [...weeks].map(([date, counts]) => ({
+        date,
+        ...counts,
+      })),
+      months: [...months].map(([date, counts]) => ({
+        date,
+        ...counts,
+      })),
       popular: [...popular]
         .map(([id, count]) => ({
           id,
@@ -148,11 +166,14 @@ export function evolutionRoutes({ db, key, now, training }) {
       timeline,
     };
   }
-  function dispatch(method, url, user, input = {}) {
+  async function dispatch(method, url, user, input = {}) {
     const path = url.pathname,
-      prefs = preferences(user.id);
+      prefs = await preferences(user.id);
     if (path === "/api/preferences") {
-      if (method === "GET") return { preferences: prefs };
+      if (method === "GET")
+        return {
+          preferences: prefs,
+        };
       if (method === "PUT") {
         if (input.version !== prefs.version)
           throw new HttpError(
@@ -191,28 +212,34 @@ export function evolutionRoutes({ db, key, now, training }) {
               : new Date(now()).toISOString()
             : null,
         };
-        db.prepare(
-          "INSERT INTO user_preferences VALUES (?,?,1,?) ON CONFLICT(user_id) DO UPDATE SET payload=excluded.payload,version=version+1,updated_at=excluded.updated_at",
-        ).run(user.id, encrypt(data, key, `preferences:${user.id}`), now());
-        return { preferences: preferences(user.id) };
+        await db
+          .prepare(
+            "INSERT INTO user_preferences VALUES (?,?,1,?) ON CONFLICT(user_id) DO UPDATE SET payload=excluded.payload,version=version+1,updated_at=excluded.updated_at",
+          )
+          .run(user.id, encrypt(data, key, `preferences:${user.id}`), now());
+        return {
+          preferences: await preferences(user.id),
+        };
       }
     }
     if (path === "/api/dashboard" && method === "GET") {
-      const active = db
+      const active = await db
         .prepare(
           "SELECT id FROM training_plans WHERE user_id=? AND status='active'",
         )
         .get(user.id);
       const counts = Object.fromEntries(
-        db
-          .prepare(
-            "SELECT status,count(*) n FROM workout_logs WHERE user_id=? GROUP BY status",
-          )
-          .all(user.id)
-          .map((r) => [r.status, r.n]),
+        (
+          await db
+            .prepare(
+              "SELECT status,count(*) n FROM workout_logs WHERE user_id=? GROUP BY status",
+            )
+            .all(user.id)
+        ).map((r) => [r.status, r.n]),
       );
-      const upcoming = calendar
-        .list(user.id, localDay(now(), prefs.timeZone))
+      const upcoming = (
+        await calendar.list(user.id, localDay(now(), prefs.timeZone))
+      )
         .filter((e) => !e.workoutId)
         .slice(0, 5);
       const today = localDay(now(), prefs.timeZone),
@@ -222,20 +249,20 @@ export function evolutionRoutes({ db, key, now, training }) {
         ),
         weekTo = shiftDate(weekFrom, 6);
       const week = aggregate(
-        workouts(user.id, weekFrom, weekTo),
+        await workouts(user.id, weekFrom, weekTo),
         weekFrom,
         weekTo,
         prefs,
         "",
         "",
       );
-      const runningRow = db
+      const runningRow = await db
         .prepare(
           "SELECT * FROM workout_logs WHERE user_id=? AND status='in_progress'",
         )
         .get(user.id);
       return {
-        activePlan: active ? plan(active.id, user) : null,
+        activePlan: active ? await plan(active.id, user) : null,
         nextSession: upcoming[0] || null,
         upcoming,
         week: {
@@ -249,12 +276,13 @@ export function evolutionRoutes({ db, key, now, training }) {
         running: runningRow ? unpackWorkout(runningRow) : null,
         completed: counts.completed || 0,
         partial: counts.partial || 0,
-        recent: db
-          .prepare(
-            "SELECT * FROM workout_logs WHERE user_id=? AND status<>'in_progress' ORDER BY started_at DESC,id LIMIT 5",
-          )
-          .all(user.id)
-          .map(unpackWorkout),
+        recent: (
+          await db
+            .prepare(
+              "SELECT * FROM workout_logs WHERE user_id=? AND status<>'in_progress' ORDER BY started_at DESC,id LIMIT 5",
+            )
+            .all(user.id)
+        ).map(unpackWorkout),
       };
     }
     if (path === "/api/statistics" && method === "GET") {
@@ -269,7 +297,7 @@ export function evolutionRoutes({ db, key, now, training }) {
         bad("Estado inválido.");
       const previousFrom = shiftDate(from, -days),
         previousTo = shiftDate(from, -1),
-        rows = workouts(user.id, previousFrom, to);
+        rows = await workouts(user.id, previousFrom, to);
       return {
         from,
         to,
@@ -300,7 +328,7 @@ export function evolutionRoutes({ db, key, now, training }) {
         bad("Estado inválido.");
       if (exerciseId && !exerciseById.has(exerciseId))
         bad("Exercício inválido.");
-      const size = db
+      const size = await db
         .prepare(
           "SELECT count(*) n,coalesce(sum(length(payload)),0) bytes FROM workout_logs WHERE user_id=? AND started_at>=? AND started_at<? AND (?='' OR plan_ref=?)",
         )
@@ -316,7 +344,7 @@ export function evolutionRoutes({ db, key, now, training }) {
           413,
           "Este período tem muitos registros. Reduza o intervalo do relatório.",
         );
-      const raw = workouts(user.id, previousFrom, to, planId);
+      const raw = await workouts(user.id, previousFrom, to, planId);
       const current = aggregate(
           raw,
           from,
@@ -366,19 +394,22 @@ export function evolutionRoutes({ db, key, now, training }) {
       if (planId && !/^[0-9a-f-]{36}$/i.test(planId)) bad("Plano inválido.");
       return {
         timeZone: prefs.timeZone,
-        events: calendar.list(user.id, from, to, planId),
-        workouts: workouts(user.id, from, to)
+        events: await calendar.list(user.id, from, to, planId),
+        workouts: (await workouts(user.id, from, to))
           .filter((w) => {
             const d = localDay(w.startedAt, prefs.timeZone);
             return d >= from && d <= to && (!planId || w.planId === planId);
           })
-          .map((w) => ({ ...w, date: localDay(w.startedAt, prefs.timeZone) })),
+          .map((w) => ({
+            ...w,
+            date: localDay(w.startedAt, prefs.timeZone),
+          })),
       };
     }
     if (/^\/api\/(calendar|calendar-series)(\/|$)/.test(path))
-      return calendar.dispatch(method, url, user, input);
+      return await calendar.dispatch(method, url, user, input);
     if (path === "/api/export" && method === "GET") {
-      const p = db
+      const p = await db
         .prepare("SELECT payload FROM profiles WHERE user_id=?")
         .get(user.id);
       return {
@@ -394,36 +425,42 @@ export function evolutionRoutes({ db, key, now, training }) {
         },
         profile: p ? decrypt(p.payload, key, user.id) : null,
         preferences: prefs,
-        plans: training("GET", new URL("http://local/api/plans"), user).plans,
-        workouts: workouts(user.id),
-        calendar: events(user.id),
-        calendarSeries: calendar.seriesList(user),
-        planVersions: db
-          .prepare(
-            "SELECT * FROM plan_versions WHERE user_id=? ORDER BY plan_id,version",
-          )
-          .all(user.id)
-          .map((r) => ({
-            planId: r.plan_id,
-            version: r.version,
-            status: r.status,
-            createdAt: r.created_at,
-            ...decrypt(r.payload, key, `plan:${user.id}:${r.plan_id}`),
-          })),
-        drafts: db
-          .prepare("SELECT * FROM ai_drafts WHERE user_id=? AND expires_at>?")
-          .all(user.id, now())
-          .map((r) => ({
-            id: r.id,
-            createdAt: r.created_at,
-            expiresAt: r.expires_at,
-            ...decrypt(r.payload, key, `draft:${user.id}:${r.id}`),
-          })),
+        plans: (await training("GET", new URL("http://local/api/plans"), user))
+          .plans,
+        workouts: await workouts(user.id),
+        calendar: await events(user.id),
+        calendarSeries: await calendar.seriesList(user),
+        planVersions: (
+          await db
+            .prepare(
+              "SELECT * FROM plan_versions WHERE user_id=? ORDER BY plan_id,version",
+            )
+            .all(user.id)
+        ).map((r) => ({
+          planId: r.plan_id,
+          version: r.version,
+          status: r.status,
+          createdAt: r.created_at,
+          ...decrypt(r.payload, key, `plan:${user.id}:${r.plan_id}`),
+        })),
+        drafts: (
+          await db
+            .prepare("SELECT * FROM ai_drafts WHERE user_id=? AND expires_at>?")
+            .all(user.id, now())
+        ).map((r) => ({
+          id: r.id,
+          createdAt: r.created_at,
+          expiresAt: r.expires_at,
+          ...decrypt(r.payload, key, `draft:${user.id}:${r.id}`),
+        })),
       };
     }
     throw new HttpError(404, "Recurso não encontrado.");
   }
-  return { dispatch, preferences };
+  return {
+    dispatch,
+    preferences,
+  };
 }
 export const isEvolutionPath = (path) =>
   /^\/api\/(preferences|dashboard|statistics|calendar|calendar-series|reports|export)(\/|$)/.test(

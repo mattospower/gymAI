@@ -1,6 +1,6 @@
 import { test, expect } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
-import { createApp } from "../../server/app.mjs";
+import { createTestApp as createApp } from "../helpers/app.mjs";
 import { randomBytes } from "node:crypto";
 import { mkdirSync, mkdtempSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
@@ -14,7 +14,7 @@ test("Etapa 3: calendário, gráficos, demonstração, revisão, exportação e 
   mkdirSync(parent, { recursive: true });
   const directory = mkdtempSync(resolve(parent, "browser-evolution-"));
   const origin = "http://localhost:3111";
-  const app = createApp({
+  const app = await createApp({
     origin,
     databasePath: resolve(directory, "gymia.sqlite"),
     encryptionKey: randomBytes(32).toString("hex"),
