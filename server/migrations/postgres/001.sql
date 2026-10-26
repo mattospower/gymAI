@@ -19,7 +19,7 @@ CREATE TABLE IF NOT EXISTS users (
     CREATE TABLE IF NOT EXISTS rate_limits (key TEXT PRIMARY KEY, count BIGINT NOT NULL, until BIGINT NOT NULL);
     CREATE INDEX IF NOT EXISTS sessions_user ON sessions(user_id);
     CREATE INDEX IF NOT EXISTS resets_user ON resets(user_id);
-  
+
 
     CREATE TABLE IF NOT EXISTS training_plans (
       id TEXT PRIMARY KEY, user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -36,7 +36,7 @@ CREATE TABLE IF NOT EXISTS users (
     );
     CREATE UNIQUE INDEX IF NOT EXISTS one_running_workout ON workout_logs(user_id) WHERE status='in_progress';
     CREATE INDEX IF NOT EXISTS workouts_owner_date ON workout_logs(user_id,started_at);
-  
+
 
     CREATE TABLE user_preferences (
       user_id TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
@@ -53,7 +53,7 @@ CREATE TABLE IF NOT EXISTS users (
       payload TEXT NOT NULL, created_at BIGINT NOT NULL, expires_at BIGINT NOT NULL
     );
     CREATE INDEX drafts_owner ON ai_drafts(user_id,expires_at);
-  
+
 
       CREATE TABLE calendar_series (
         id TEXT PRIMARY KEY, user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -79,7 +79,7 @@ CREATE TABLE IF NOT EXISTS users (
         created_at BIGINT NOT NULL, PRIMARY KEY(plan_id,version)
       );
       CREATE INDEX versions_owner ON plan_versions(user_id,plan_id);
-      
+
       CREATE FUNCTION gymia_record_plan_version() RETURNS trigger LANGUAGE plpgsql AS $$
 BEGIN
   IF TG_OP = 'INSERT' OR NEW.version <> OLD.version THEN
