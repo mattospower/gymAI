@@ -1,3 +1,11 @@
+# GymIA — Site publicado
+
+🌐 **Acesse o GymIA:** https://gymia-gym-ia1.vercel.app
+
+> A versão online foi publicada na Vercel. Este README da branch `main` ainda documenta a Etapa 2; as implementações mais recentes estão nas branches de desenvolvimento.
+
+---
+
 # gymAI — etapa 2
 
 Evolução do HTML/CSS original para contas, perfis, planos manuais e registros de treinamento. Preserva a paleta, as fontes Archivo, DM Sans e JetBrains Mono e os componentes da página inicial. Não gera treinos por IA nesta etapa.
