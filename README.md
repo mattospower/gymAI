@@ -6,7 +6,7 @@
 
 ---
 
-## Critérios de avaliação — funcionamento do site
+## funcionamento do site
 
 Esta seção registra o que está documentado no código e o que ainda precisa ser demonstrado na versão publicada. **Não marque um critério como concluído apenas porque ele aparece descrito neste README.** Faça a conferência prática antes da apresentação.
 
