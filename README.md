@@ -6,6 +6,27 @@
 
 ---
 
+## Critérios de avaliação — funcionamento do site
+
+Esta seção registra o que está documentado no código e o que ainda precisa ser demonstrado na versão publicada. **Não marque um critério como concluído apenas porque ele aparece descrito neste README.** Faça a conferência prática antes da apresentação.
+
+| Critério | Situação documentada | Como comprovar / o que falta |
+| --- | --- | --- |
+| **1. Deploy e funcionamento** | **Parcial.** O site publicado está indicado em [GymIA na Vercel](https://gymia-gym-ia1.vercel.app). A documentação desta branch descreve a Etapa 2; isso, por si só, não identifica qual commit/branch está servindo a versão online. | Confirmar qual branch e commit foram implantados na Vercel. Abrir o endereço em uma janela anônima e verificar se HTML, CSS, imagens e JavaScript carregam corretamente. Testar os fluxos que serão apresentados e registrar o resultado. |
+| **2. Interatividade sem recarregamento** | **Parcial.** O projeto documenta operações de planos por meio da API, mas este README ainda não relaciona os formulários específicos nem comprova o comportamento de cada ação na interface. | Conferir no JavaScript quais formulários chamam `event.preventDefault()`. Com a aba Network do navegador aberta, criar, editar e excluir um plano e confirmar que a tela é atualizada sem uma navegação/recarregamento completo. Registrar os arquivos e funções responsáveis depois da conferência. |
+| **3. Persistência após F5** | **Não demonstrado para `localStorage`/`sessionStorage`.** A persistência descrita para contas, planos e treinos é feita pela API e pelo banco SQLite no servidor. O README também informa que dados privados e rascunhos sensíveis não são gravados no armazenamento web do navegador. | O critério pede um dado do usuário salvo em `localStorage` ou `sessionStorage` e recuperado após F5. Escolher um dado não sensível, como o filtro de equipamentos da biblioteca, implementar esse comportamento se ainda não existir e testar: alterar o filtro, pressionar F5 e verificar se ele permanece. Não usar esses armazenamentos para senhas, tokens ou dados privados. |
+| **4. Console sem erros** | **Parcial.** A suíte automatizada descrita abaixo verifica erros de JavaScript durante os testes, mas isso não comprova que a versão atualmente publicada esteja livre de erros em todos os fluxos. | Abrir o site publicado, pressionar F12 e selecionar Console. Testar criação, edição e exclusão de um plano. Corrigir erros reproduzíveis e anotar no checklist a data, o navegador e os fluxos verificados. |
+| **5. Responsividade e acessibilidade** | **Mais bem documentado.** O projeto descreve menu móvel, campos rotulados, foco visível, testes em 390 px, verificação de overflow em 320 px e checagens automatizadas axe nas telas cobertas. | Repetir a verificação na versão publicada: testar em tela estreita e desktop, navegar por teclado, conferir foco e rótulos e verificar se não há rolagem horizontal indevida. Os testes automatizados não substituem uma avaliação manual. |
+
+### Checklist para preencher após os testes
+
+- [ ] Identifiquei a branch e o commit realmente publicados na Vercel.
+- [ ] Abri o site publicado e confirmei que CSS, JavaScript e recursos visuais carregam.
+- [ ] Testei criar, editar e excluir sem recarregar a página e identifiquei os respectivos `preventDefault()`.
+- [ ] Testei um dado não sensível em `localStorage` ou `sessionStorage` após F5. Se ainda não foi implementado, este item continua pendente.
+- [ ] Testei os fluxos principais com o Console aberto e registrei os erros encontrados ou a ausência deles.
+- [ ] Conferi responsividade e acessibilidade na versão publicada.
+
 # gymAI — etapa 2
 
 Evolução do HTML/CSS original para contas, perfis, planos manuais e registros de treinamento. Preserva a paleta, as fontes Archivo, DM Sans e JetBrains Mono e os componentes da página inicial. Não gera treinos por IA nesta etapa.
