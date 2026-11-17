@@ -38,27 +38,25 @@ test("Etapa 2: migração, planos, sessões, histórico e privacidade", async (t
       created,
       created,
     );
-  legacy
-    .prepare("INSERT INTO profiles VALUES (?,?,?)")
-    .run(
+  legacy.prepare("INSERT INTO profiles VALUES (?,?,?)").run(
+    owner,
+    encrypt(
+      {
+        goal: "forca",
+        experience: "iniciante",
+        days: 3,
+        minutes: 45,
+        location: "casa",
+        equipment: ["peso-corporal"],
+        otherEquipment: "",
+        limitations: "Informação sensível do perfil",
+        sensitiveConsent: true,
+      },
+      key,
       owner,
-      encrypt(
-        {
-          goal: "forca",
-          experience: "iniciante",
-          days: 3,
-          minutes: 45,
-          location: "casa",
-          equipment: ["peso-corporal"],
-          otherEquipment: "",
-          limitations: "Informação sensível do perfil",
-          sensitiveConsent: true,
-        },
-        key,
-        owner,
-      ),
-      created,
-    );
+    ),
+    created,
+  );
   legacy
     .prepare("INSERT INTO sessions VALUES (?,?,?)")
     .run(digest(sessionToken), owner, created + 12 * 3600000);
@@ -127,7 +125,7 @@ test("Etapa 2: migração, planos, sessões, histórico e privacidade", async (t
   };
   try {
     await t.test(
-      "Migração 1→2 preserva integralmente conta, perfil e sessão",
+      "Migração 1→3 preserva integralmente conta, perfil e sessão",
       async () => {
         assert.deepEqual(
           app.db.prepare("SELECT * FROM users WHERE id=?").get(owner),
@@ -135,7 +133,7 @@ test("Etapa 2: migração, planos, sessões, histórico e privacidade", async (t
         );
         assert.equal(
           app.db.prepare("PRAGMA user_version").get().user_version,
-          2,
+          4,
         );
         assert.equal(
           (await request("/api/session")).body.user.name,
@@ -172,11 +170,18 @@ test("Etapa 2: migração, planos, sessões, histórico e privacidade", async (t
       "Biblioteca tem referências e criação valida dados no servidor",
       async () => {
         const library = (await request("/api/exercises")).body.exercises;
-        assert.equal(library.length, 10);
+        assert.equal(library.length, 40);
         assert.ok(
           library.every(
             (e) =>
-              e.source.startsWith("https://www.acefitness.org/") &&
+              [
+                "www.acefitness.org",
+                "www.nhs.uk",
+                "eat-move-save.extension.illinois.edu",
+                "www.cardiosmart.org",
+                "www.uclahealth.org",
+                "www.heart.org",
+              ].includes(new URL(e.source).hostname) &&
               e.guidance &&
               e.category,
           ),

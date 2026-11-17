@@ -1,6 +1,6 @@
 import { test, expect } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
-import { createApp } from "../../server/app.mjs";
+import { createTestApp as createApp } from "../helpers/app.mjs";
 import { randomBytes } from "node:crypto";
 import { resolve } from "node:path";
 import { mkdirSync, mkdtempSync } from "node:fs";
@@ -14,7 +14,7 @@ test("Planos manuais, execução parcial, histórico e layouts da Etapa 2", asyn
     parent = resolve("test-results");
   mkdirSync(parent, { recursive: true });
   const directory = mkdtempSync(resolve(parent, "browser-training-"));
-  const app = createApp({
+  const app = await createApp({
     origin,
     databasePath: resolve(directory, "gymia.sqlite"),
     encryptionKey: randomBytes(32).toString("hex"),
@@ -286,17 +286,17 @@ test("Planos manuais, execução parcial, histórico e layouts da Etapa 2", asyn
     await page
       .getByLabel("Equipamento", { exact: true })
       .selectOption("elasticos");
-    await expect(page.locator(".exercise-card")).toHaveCount(1);
+    await expect(page.locator(".exercise-card")).toHaveCount(2);
     await page.getByLabel("Equipamento", { exact: true }).selectOption("");
     await page.getByLabel("Categoria", { exact: true }).selectOption("Agachar");
-    await expect(page.locator(".exercise-card")).toHaveCount(1);
+    await expect(page.locator(".exercise-card")).toHaveCount(2);
     await page.getByLabel("Categoria", { exact: true }).selectOption("");
     await page
       .getByLabel("Usar equipamentos do meu perfil (inclui peso corporal)", {
         exact: true,
       })
       .check();
-    await expect(page.locator(".exercise-card")).toHaveCount(7);
+    await expect(page.locator(".exercise-card")).toHaveCount(12);
     const plans = (await (await page.request.get(origin + "/api/plans")).json())
       .plans;
     const remaining = plans.find((p) => p.name === copied);
