@@ -1,6 +1,6 @@
 # GymIA — Site publicado
 
-🌐 **Acesse o GymIA:** https://gymia-gym-ia1.vercel.app
+🌐 **Acesse o GymIA:** [https://gymia-gym-ia1.vercel.app](https://gymia-gym-ia1.vercel.app)
 
 > A versão online foi publicada na Vercel. Este README da branch `main` ainda documenta a Etapa 2; as implementações mais recentes estão nas branches de desenvolvimento.
 
