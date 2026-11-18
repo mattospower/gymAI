@@ -80,7 +80,7 @@ export function library(container, catalog, profile, onSelect) {
   const query = node("input", {
     id: `${container.id}-search`,
     type: "search",
-    placeholder: "Pesquisar pelo nome",
+    placeholder: "Nome, região ou categoria",
   });
   const equipment = node(
     "select",
@@ -103,12 +103,40 @@ export function library(container, catalog, profile, onSelect) {
     id: `${container.id}-mine`,
     disabled: !profile,
   });
+  const region = node(
+    "select",
+    { id: `${container.id}-region` },
+    node("option", { value: "" }, "Todas as regiões"),
+    [...new Set(catalog.map((e) => e.region))]
+      .sort()
+      .map((value) => node("option", { value }, value)),
+  );
   const count = node("p", { class: "small", role: "status" }),
     list = node("div", { class: "exercise-grid" });
+  let visible = 12;
+  const group = node(
+    "select",
+    { id: `${container.id}-group` },
+    node("option", { value: "" }, "Todos os tipos"),
+    ...[
+      "Peso corporal",
+      "Máquinas",
+      "Pesos livres",
+      "Mobilidade",
+      "Alongamento",
+      "Aeróbico",
+    ].map((v) => node("option", { value: v }, v)),
+  );
+  const more = button("Mostrar mais exercícios", () => {
+    visible += 12;
+    render();
+  });
   const controls = [
     ["Pesquisar exercício", query],
     ["Equipamento", equipment],
     ["Categoria", category],
+    ["Região", region],
+    ["Tipo de atividade", group],
   ].map(([label, input]) =>
     node(
       "div",
@@ -131,6 +159,7 @@ export function library(container, catalog, profile, onSelect) {
     ),
     count,
     list,
+    more,
   );
   function render() {
     const normalize = (value) =>
@@ -140,7 +169,11 @@ export function library(container, catalog, profile, onSelect) {
         .toLowerCase();
     const matches = catalog.filter(
       (e) =>
-        normalize(e.name).includes(normalize(query.value)) &&
+        (!group.value || e.group === group.value) &&
+        normalize(
+          `${e.name} ${e.region} ${e.category} ${e.equipmentText} ${e.group}`,
+        ).includes(normalize(query.value)) &&
+        (!region.value || region.value === e.region) &&
         (!equipment.value || e.equipment.includes(equipment.value)) &&
         (!category.value || category.value === e.category) &&
         (!mine.checked ||
@@ -150,7 +183,7 @@ export function library(container, catalog, profile, onSelect) {
     );
     count.textContent = `${matches.length} exercício(s) encontrado(s). Os equipamentos complementares estão descritos em cada cartão.`;
     list.replaceChildren(
-      ...matches.map((e) =>
+      ...matches.slice(0, visible).map((e) =>
         node(
           "article",
           { class: "card form-card exercise-card" },
@@ -166,7 +199,7 @@ export function library(container, catalog, profile, onSelect) {
             node(
               "a",
               { href: e.source, target: "_blank", rel: "noopener noreferrer" },
-              "Referência: ACE Exercise Library (em inglês)",
+              `Referência: ${e.sourceName || "ACE Exercise Library"} (em inglês)`,
             ),
           ),
           onSelect
@@ -177,6 +210,7 @@ export function library(container, catalog, profile, onSelect) {
         ),
       ),
     );
+    more.hidden = matches.length <= visible;
     if (!matches.length)
       list.append(
         node(
@@ -186,8 +220,11 @@ export function library(container, catalog, profile, onSelect) {
         ),
       );
   }
-  [query, equipment, category, mine].forEach((input) =>
-    input.addEventListener(input === query ? "input" : "change", render),
+  [query, equipment, category, region, mine, group].forEach((input) =>
+    input.addEventListener(input === query ? "input" : "change", () => {
+      visible = 12;
+      render();
+    }),
   );
   render();
 }

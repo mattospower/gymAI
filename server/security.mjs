@@ -102,10 +102,10 @@ export function email(value) {
 }
 
 export function password(value, confirmation) {
-  if (typeof value !== "string" || value.length < 15 || value.length > 128) {
+  if (typeof value !== "string" || value.length < 8 || value.length > 128) {
     throw new HttpError(
       400,
-      "Use uma senha entre 15 e 128 caracteres. Uma frase longa é uma boa opção.",
+      "Use uma senha entre 8 e 128 caracteres. Uma frase longa é uma boa opção.",
     );
   }
   if (value !== confirmation)

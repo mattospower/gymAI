@@ -7,3 +7,7 @@ test-results/
 playwright-report/
 *.sqlite*
 *.log
+
+.vercel/
+backups/
+*.gymia-backup

@@ -1,4 +1,6 @@
 import { api, showMessage } from "./api.js";
+import { installPlanTools } from "./plan-tools.js";
+import { renderDashboard } from "./evolution.js";
 import {
   node,
   button,
@@ -51,9 +53,10 @@ function empty(text) {
 }
 
 async function dashboard() {
-  const [{ plans }, { workouts }] = await Promise.all([
+  await renderDashboard(document.getElementById("dashboard-summary"));
+  const [{ plans }, dashboardData] = await Promise.all([
     api("plans"),
-    api("workouts"),
+    api("dashboard"),
   ]);
   $("profile-context").replaceChildren(
     profile
@@ -69,7 +72,7 @@ async function dashboard() {
           ),
         ),
   );
-  const running = workouts.find((w) => w.status === "in_progress");
+  const running = dashboardData.running;
   $("running-workout").replaceChildren(
     ...(running
       ? [
@@ -188,6 +191,8 @@ async function dashboard() {
 }
 
 async function editor() {
+  const draftId = params.get("draft");
+  const draft = draftId ? (await api(`ai/drafts/${draftId}`)).draft : null;
   let plan = params.get("id")
     ? (await api(`plans/${params.get("id")}`)).plan
     : {
@@ -198,6 +203,41 @@ async function editor() {
           { id: crypto.randomUUID(), name: "", day: "", exercises: [] },
         ],
       };
+  if (draft) {
+    plan = draft.plan;
+    const notice = node(
+      "div",
+      { class: "notice" },
+      node(
+        "strong",
+        {},
+        `Rascunho ${draft.provider === "demo" ? "de demonstração local" : "do assistente"} — revise antes de salvar`,
+      ),
+      node(
+        "p",
+        {},
+        "Nenhum plano foi criado ou ativado. Revise cada exercício e valor. As sugestões não são avaliação profissional nem garantem resultados.",
+      ),
+    );
+    $("plan-form").prepend(notice);
+    $("plan-form").append(
+      node(
+        "label",
+        { class: "check" },
+        node("input", {
+          type: "checkbox",
+          id: "draft-reviewed",
+          required: true,
+        }),
+        node(
+          "span",
+          {},
+          "Revisei os exercícios e valores e confirmo salvar como plano inativo.",
+        ),
+      ),
+    );
+    dirty = true;
+  }
   const archived = plan.status === "archived";
   if (archived) {
     $("plan-form").replaceChildren(
@@ -375,6 +415,36 @@ async function editor() {
             "div",
             { class: "section-heading" },
             node("h2", {}, `Sessão ${index + 1}`),
+            field(
+              "Posição da sessão",
+              session.id + "-position",
+              index,
+              (value) => {
+                const to = Number(value);
+                const [moved] = plan.sessions.splice(index, 1);
+                plan.sessions.splice(to, 0, moved);
+                changed();
+                render();
+                $(session.id + "-position").focus();
+              },
+              { options: plan.sessions.map((s, i) => [i, String(i + 1)]) },
+            ),
+            button("Duplicar sessão", () => {
+              if (plan.sessions.length >= 7)
+                return showMessage(
+                  message,
+                  "Limite de 7 sessões por plano.",
+                  true,
+                );
+              const copy = structuredClone(session);
+              copy.id = crypto.randomUUID();
+              copy.name = `${copy.name.slice(0, 70)} (cópia)`;
+              copy.exercises.forEach((e) => (e.id = crypto.randomUUID()));
+              plan.sessions.splice(index + 1, 0, copy);
+              changed();
+              render();
+              $(`${copy.id}-name`).focus();
+            }),
             button("Remover sessão", () => {
               if (plan.sessions.length === 1) {
                 showMessage(
@@ -454,20 +524,42 @@ async function editor() {
     const submit = $("plan-form").querySelector("[type=submit]");
     submit.disabled = true;
     try {
-      const result = await api(plan.id ? `plans/${plan.id}` : "plans", {
-        method: plan.id ? "PUT" : "POST",
-        body: plan,
-      });
+      $("plan-save-state").textContent = "Salvando no servidor…";
+      const result = draft
+        ? await api(`ai/drafts/${draftId}/save`, {
+            method: "POST",
+            body: { plan, reviewed: $("draft-reviewed").checked },
+          })
+        : await api(plan.id ? `plans/${plan.id}` : "plans", {
+            method: plan.id ? "PUT" : "POST",
+            body: plan,
+          });
       plan = result.plan;
       dirty = false;
       location.assign("treinos.html");
     } catch (error) {
+      $("plan-save-state").textContent =
+        error.status === 409
+          ? "Não salvo: o plano mudou em outra aba. Compare com os dados mais recentes abaixo. Suas alterações continuam nesta tela."
+          : "Não salvo. Suas alterações continuam nesta tela.";
       showMessage(message, error.message, true);
     } finally {
       submit.disabled = false;
     }
   };
   render();
+  await installPlanTools({
+    catalog,
+    form: $("plan-form"),
+    getPlan: () => plan,
+    applySessions: (sessions) => {
+      plan.sessions = sessions;
+      changed();
+      render();
+    },
+    action,
+    dirty: () => dirty,
+  });
 }
 
 async function workout() {
@@ -647,13 +739,20 @@ async function workout() {
 }
 
 async function history() {
-  const initial = (await api("workouts")).workouts;
+  const initial = (await api("workouts?limit=25")).workouts;
   const names = new Map(initial.map((w) => [w.planId, w.snapshot.planName]));
   $("history-plan").append(
     ...[...names].map(([id, name]) => node("option", { value: id }, name)),
   );
-  async function render() {
-    const query = new URLSearchParams();
+  let nextCursor = null;
+  const more = button(
+    "Carregar mais registros",
+    action(() => render(true)),
+  );
+  $("history-list").after(more);
+  async function render(append = false) {
+    const query = new URLSearchParams({ limit: "25" });
+    if (append && nextCursor) query.set("cursor", nextCursor);
     if ($("history-plan").value) query.set("planId", $("history-plan").value);
     if ($("history-from").value)
       query.set(
@@ -665,12 +764,28 @@ async function history() {
       end.setDate(end.getDate() + 1);
       query.set("untilInstant", end.toISOString());
     }
-    const { workouts } = await api(`workouts?${query}`);
-    $("history-list").replaceChildren(
+    const result = params.has("id")
+      ? {
+          workouts: [(await api(`workouts/${params.get("id")}`)).workout],
+          nextCursor: null,
+        }
+      : await api(`workouts?${query}`);
+    const workouts = result.workouts;
+    nextCursor = result.nextCursor;
+    more.hidden = !nextCursor;
+    for (const w of workouts)
+      if (!names.has(w.planId)) {
+        names.set(w.planId, w.snapshot.planName);
+        $("history-plan").append(
+          node("option", { value: w.planId }, w.snapshot.planName),
+        );
+      }
+    if (!append) $("history-list").replaceChildren();
+    $("history-list").append(
       ...workouts.map((w) =>
         node(
           "article",
-          { class: "card form-card" },
+          { class: "card form-card", id: `workout-${w.id}` },
           node(
             "div",
             { class: "section-heading" },
@@ -717,6 +832,8 @@ async function history() {
         ),
       ),
     );
+    if (params.has("id"))
+      $("history-list").querySelector("details")?.setAttribute("open", "");
     if (!workouts.length)
       $("history-list").append(
         node(
@@ -728,6 +845,8 @@ async function history() {
   }
   $("history-filter").onsubmit = (event) => {
     event.preventDefault();
+    params.delete("id");
+    window.history.replaceState(null, "", "historico.html");
     action(render)();
   };
   await render();
