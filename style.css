@@ -402,3 +402,42 @@ a { text-decoration: none; }
 main p a, main li a { font-weight: 700; }
 #lista-equipamentos li { display:flex; flex-wrap:wrap; gap:.6rem; align-items:center; margin:.6rem 0; }
 #lista-equipamentos li span { min-width:9rem; }
+
+@keyframes gym-content-enter {
+  from { opacity: .85; }
+  to { opacity: 1; }
+}
+
+@keyframes gym-panel-enter {
+  from { opacity: .7; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media screen and (prefers-reduced-motion: no-preference) {
+  main { animation: gym-content-enter 180ms ease-out; }
+
+  details[open] > :not(summary) {
+    animation: gym-panel-enter 160ms ease-out;
+  }
+
+  .links a, .training-tabs a {
+    transition: color 140ms ease-out, background-color 140ms ease-out;
+  }
+
+  .btn {
+    transition: transform 140ms ease-out, background-color 140ms ease-out,
+                border-color 140ms ease-out, filter 140ms ease-out;
+  }
+}
+
+@media screen and (max-width: 900px) and (prefers-reduced-motion: no-preference) {
+  nav .links.is-open { animation: gym-panel-enter 160ms ease-out; }
+}
+
+@media screen and (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
+  .btn:not(:disabled):hover:not(:active) { transform: translateY(-1px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .btn:active { transform: none; }
+}
