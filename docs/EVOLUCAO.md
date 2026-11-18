@@ -1,8 +1,8 @@
-# GymIA — Etapa 3
+# GymIA — Evolução
 
 ## Base e escopo
 
-O PR #2 foi integrado à `main` no commit `04def687a5bf91901852b663bf56cf865304f4c4`. A branch `feat/etapa-3-evolucao-gymia` parte desse commit. Não houve merge automático ou publicação. Não foi encontrado TCC nos arquivos disponíveis; README e funcionalidades existentes orientaram a implementação.
+O PR #2 foi integrado à `main` no commit `04def687a5bf91901852b663bf56cf865304f4c4`. O desenvolvimento do painel de evolução partiu desse commit. Não houve merge automático ou publicação. Não foi encontrado TCC nos arquivos disponíveis; README e funcionalidades existentes orientaram a implementação.
 
 ## Funcionalidades
 
@@ -109,7 +109,7 @@ Abra `http://localhost:3000`. `setup` cria `.env` somente se ele não existir; n
 
 O padrão é demonstração local. Não é necessário configurar OpenAI nem contratar serviços para calendário, evolução, biblioteca, exportação ou treinos.
 
-## Atualizar uma instalação da Etapa 2
+## Atualizar uma instalação de treinos
 
 1. Reserve uma janela de manutenção e confira o local do banco em `DATABASE_PATH`. Não execute testes contra esse banco.
 2. Com o código anterior ainda disponível, execute `node --env-file=.env scripts/backup.mjs`. O script usa a SQLite Backup API e cria uma cópia consistente no diretório `backups` ao lado do banco. Guarde a chave e `.env` em cópia protegida separada.
@@ -124,7 +124,7 @@ Pare o servidor. Preserve o diretório da instalação com problema para anális
 
 Antes de reabrir o serviço, o responsável deve reaplicar exclusões ocorridas depois do backup e revogar cookies/links de recuperação anteriores. Em uma cópia restaurada, isso pode ser feito com SQLite apagando somente as linhas de `sessions` e `resets`, com o servidor parado. Depois confira `PRAGMA integrity_check` e `PRAGMA foreign_key_check`, login e leitura do perfil/histórico. Teste inicialmente com acesso local restrito.
 
-O código da Etapa 2 recusa um banco v3. Para voltar à Etapa 2, restaure o backup v2 junto com o código antigo e sua chave; novos registros feitos após o backup não estarão nessa cópia. Não altere `user_version` manualmente em dados reais.
+O código de treinos recusa um banco v3. Para voltar à versão com banco v2, restaure o backup v2 junto com o código antigo e sua chave; novos registros feitos após o backup não estarão nessa cópia. Não altere `user_version` manualmente em dados reais.
 
 ## Testes e limites de validação
 
@@ -136,7 +136,7 @@ pnpm exec playwright install chromium
 pnpm test:e2e
 ```
 
-Os testes usam bases temporárias em `test-results`, chaves aleatórias e contas fictícias. Incluem regressões das Etapas 1/2, migrações v1/v2, rollback, chave incompatível, sessão em andamento, persistência, isolamento de calendário/estatísticas/rascunhos/exportação, CSRF, limites, estados concluído/parcial, períodos/fuso, histórico com mais de 500 registros, consumo do rascunho após revisão e falhas do adaptador. A simulação de transporte do provedor existe somente nos testes; o modo de demonstração da aplicação é editorial e explicitamente rotulado.
+Os testes usam bases temporárias em `test-results`, chaves aleatórias e contas fictícias. Incluem regressões de contas e treinos, migrações v1/v2, rollback, chave incompatível, sessão em andamento, persistência, isolamento de calendário/estatísticas/rascunhos/exportação, CSRF, limites, estados concluído/parcial, períodos/fuso, histórico com mais de 500 registros, consumo do rascunho após revisão e falhas do adaptador. A simulação de transporte do provedor existe somente nos testes; o modo de demonstração da aplicação é editorial e explicitamente rotulado.
 
 O navegador verifica as telas e os fluxos em Chromium desktop e emulação móvel, larguras de 320 a 1440 px, limites dos campos, foco/teclado, axe WCAG A/AA, tokens e fontes, XSS como texto e capturas de tela. Não equivale a teste em aparelho físico, cobertura de todos os leitores de tela ou auditoria independente. O relatório da entrega registra resultados realmente executados.
 
@@ -155,8 +155,8 @@ Limitações: sem IA externa validada com credenciais reais; sem conversas persi
 | `assets/training.js`, `assets/training-ui.js` | Integração do editor, duplicação, revisão, links ao histórico e filtros |
 | `assistente.html`, `calendario.html`, `evolucao.html`, `configuracoes.html` | Novas páginas privadas usando o tema original |
 | `style.css` | Somente extensão dos componentes para as novas telas |
-| HTMLs existentes | Navegação e textos de disponibilidade/privacidade da Etapa 3 |
-| `.env.example`, `README.md`, `docs/ETAPA3.md` | Configuração, operação e documentação |
-| `tests/evolution.test.mjs`, `tests/browser/evolution.spec.mjs` | Cobertura da Etapa 3 |
+| HTMLs existentes | Navegação e textos de disponibilidade/privacidade de evolução |
+| `.env.example`, `README.md`, `docs/EVOLUCAO.md` | Configuração, operação e documentação |
+| `tests/evolution.test.mjs`, `tests/browser/evolution.spec.mjs` | Cobertura de evolução |
 | `tests/backup.test.mjs` | Backup real e restauração em base isolada |
 | Testes de treinos anteriores | Expectativas atualizadas para schema v3 e catálogo de 16 itens |
