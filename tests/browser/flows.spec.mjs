@@ -242,7 +242,7 @@ test("Cadastro, etapas, persistência, edição, login, privacidade e exclusão"
   await accessible(page);
   await noOverflow(page);
   await page.getByRole("button", { name: "Avançar" }).click();
-  await expect(page.locator("#step-label")).toHaveText("Etapa 1 de 3");
+  await expect(page.locator("#step-label")).toHaveText("Passo 1 de 3");
   await page.locator("#goal").selectOption("hipertrofia");
   await page.locator("#experience").selectOption("iniciante");
   await page.getByRole("button", { name: "Avançar" }).click();
@@ -250,16 +250,16 @@ test("Cadastro, etapas, persistência, edição, login, privacidade e exclusão"
   await page.locator("#minutes").selectOption("45");
   await page.locator("#location").selectOption("casa");
   await page.getByRole("button", { name: "Avançar" }).click();
-  await expect(page.locator("#step-label")).toHaveText("Etapa 2 de 3");
+  await expect(page.locator("#step-label")).toHaveText("Passo 2 de 3");
   await page.getByRole("checkbox", { name: "Halteres", exact: true }).check();
   await page.getByRole("checkbox", { name: "Outros", exact: true }).check();
   await page.getByRole("button", { name: "Avançar" }).click();
-  await expect(page.locator("#step-label")).toHaveText("Etapa 2 de 3");
+  await expect(page.locator("#step-label")).toHaveText("Passo 2 de 3");
   await page.locator("#otherEquipment").fill("Banco ajustável");
   await page.getByRole("button", { name: "Avançar" }).click();
   await page.locator("#limitations").fill("Restrição privada de teste");
   await page.getByRole("button", { name: "Salvar meu perfil" }).click();
-  await expect(page.locator("#step-label")).toHaveText("Etapa 3 de 3");
+  await expect(page.locator("#step-label")).toHaveText("Passo 3 de 3");
   await page.locator("#sensitiveConsent").check();
   await page.getByRole("button", { name: "Voltar", exact: true }).click();
   await expect(page.locator("#days")).toHaveValue("3");

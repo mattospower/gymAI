@@ -1,10 +1,4 @@
-# GymIA — Etapa 4
-
-## Base e revisão
-
-Esta etapa parte de `2cb87f9c28f9aa9ab8ec5dc476d6c487b050b4e3`, a entrega completa da Etapa 3. Na auditoria de 25/10/2026 a `main` ainda estava em `04def687a5bf91901852b663bf56cf865304f4c4`, com as Etapas 1/2. A branch desta entrega é `feat/etapa-4-expansao-gymia`.
-
-O PR da Etapa 4 deve ter **base `feat/etapa-3-evolucao-gymia`**. Depois que a Etapa 3 for integrada, o responsável deve atualizar a base do PR para `main` e verificar novamente o diff e os testes. Não há merge ou publicação automática. A validação automatizada não depende de testes manuais do usuário.
+# GymIA — Relatórios
 
 ## Funcionalidades
 
@@ -14,9 +8,9 @@ O PR da Etapa 4 deve ter **base `feat/etapa-3-evolucao-gymia`**. Depois que a Et
 - Biblioteca de 40 atividades, preservando os 16 IDs anteriores. As 24 adições abrangem máquinas, pesos livres, mobilidade, alongamentos, aeróbico e peso corporal. Textos próprios e fontes primárias; nenhuma imagem ou vídeo de terceiros. Busca por nome, região, categoria, equipamento e tipo; filtros e carregamento de 12 cartões por vez no catálogo e no editor.
 - Quatro modelos de organização editáveis, somente com nomes de sessões. Não incluem exercícios, séries, cargas ou frequência prescritos. Substituir as sessões da edição exige confirmação; o plano salvo só muda ao salvar.
 - Duplicação de sessões com IDs novos, seletor de posição, busca no editor, pré-visualização e comparação dos valores antes de decidir.
-- Até 30 versões recentes dos planos, incluindo mudanças de estado. A versão atual no momento da atualização é o ponto inicial: versões anteriores à instalação da Etapa 4 não são inventadas. Comparar não restaura nem sobrescreve dados automaticamente.
+- Até 30 versões recentes dos planos, incluindo mudanças de estado. A versão atual no momento da atualização é o ponto inicial: versões anteriores à instalação de relatórios não são inventadas. Comparar não restaura nem sobrescreve dados automaticamente.
 - Conflito de edição retorna 409, mantém o conteúdo local e permite comparar com o servidor. Reabrir a versão do servidor exige confirmação quando há alterações locais.
-- Assistente com atalhos de assuntos que apenas preenchem a pergunta. Rascunhos continuam editáveis, exigem revisão e podem ser comparados com um plano existente. O modo demonstração permanece identificado como editorial fixo; o adaptador real, consentimentos, minimização, limites e proteção de conteúdo da Etapa 3 continuam em vigor.
+- Assistente com atalhos de assuntos que apenas preenchem a pergunta. Rascunhos continuam editáveis, exigem revisão e podem ser comparados com um plano existente. O modo demonstração permanece identificado como editorial fixo; o adaptador real, consentimentos, minimização, limites e proteção de conteúdo de evolução continuam em vigor.
 - `relatorios.html` oferece histórico por período/plano/exercício/estado, comparação com período anterior, frequência, séries, repetições/duração e cargas reais. A consulta usa páginas de 25 sessões, com exportação completa do período em CSV ou JSON e impressão de todas as páginas.
 - Dashboard com resumo da semana configurada, próximas cinco datas ainda sem registro vinculado, sessão em andamento, histórico recente e atalhos.
 - Histórico com paginação por cursor, sem perder acesso aos registros além dos primeiros 500. Na interface, 25 registros por página; na API, limite de 1–500. O cursor ordena por instante decrescente e ID crescente, inclusive quando vários registros têm o mesmo instante.
@@ -37,7 +31,7 @@ No calendário, um vínculo pode aparecer na data planejada e a execução na da
 
 ## Métricas, relatórios e exportação
 
-As definições da [Etapa 3](ETAPA3.md#definições-dos-indicadores) foram mantidas: sessões encerradas, distinção concluída/parcial, data de início no fuso salvo, campos nulos preservados, zeros informados preservados e comparação com período anterior de igual duração. Valores informados em séries não marcadas como concluídas também são mostrados. Não há inferência clínica, classificação corporal ou estimativa de resultados.
+As definições da [Evolução](EVOLUCAO.md#definições-dos-indicadores) foram mantidas: sessões encerradas, distinção concluída/parcial, data de início no fuso salvo, campos nulos preservados, zeros informados preservados e comparação com período anterior de igual duração. Valores informados em séries não marcadas como concluídas também são mostrados. Não há inferência clínica, classificação corporal ou estimativa de resultados.
 
 O filtro de exercício seleciona sessões que continham o exercício em seu snapshot. As tabelas/exportações de séries ficam restritas ao exercício selecionado; as contagens referem-se às sessões correspondentes. Planos excluídos continuam preservados nos snapshots do histórico, relatórios e exportações; o seletor de plano lista os planos ainda cadastrados. Em Histórico, nomes de planos antigos são acrescentados conforme registros são carregados.
 
@@ -60,7 +54,7 @@ Migração transacional `user_version: 3 → 4`:
 
 Índices apoiam busca por proprietário, plano e data. Triggers registram versões na mesma operação que grava o plano, inclusive quando outro plano ativo volta ao estado salvo. Excluir um plano remove suas versões; os snapshots de execução permanecem. Excluir a conta remove todas as tabelas novas por cascata.
 
-As tabelas e os payloads das Etapas 1–3 não são reescritos. A chave AES existente é preservada. Payloads de regras usam AES-256-GCM com contexto do proprietário e ID; versões conservam o payload criptografado vinculado ao plano. IDs, datas, vínculos e versões são metadados necessários às consultas. Erros da migração v4 fazem rollback de toda essa migração e fecham a conexão. Uma instalação anterior recusa bancos de versão futura.
+As tabelas e os payloads das versões anteriores não são reescritos. A chave AES existente é preservada. Payloads de regras usam AES-256-GCM com contexto do proprietário e ID; versões conservam o payload criptografado vinculado ao plano. IDs, datas, vínculos e versões são metadados necessários às consultas. Erros da migração v4 fazem rollback de toda essa migração e fecham a conexão. Uma instalação anterior recusa bancos de versão futura.
 
 Consultas e mutações seguem autenticadas, parametrizadas, com limites, verificação de proprietário, controle de versão, proteção de origem/CSRF e renderização como texto. Não há credencial nova no repositório.
 
@@ -110,11 +104,11 @@ Pare o servidor e preserve a instalação que apresentou problema. Copie o backu
 
 Antes de reabrir acesso externo, reaplique exclusões feitas depois do backup e revogue sessões/links antigos. Em uma cópia restaurada e com o processo parado, o responsável pode apagar somente as linhas de `sessions` e `resets` com SQLite. Depois confira `PRAGMA integrity_check`, `PRAGMA foreign_key_check`, login e leitura de perfil/planos/histórico. Nunca altere `user_version` para tentar rebaixar o banco.
 
-Para voltar à Etapa 3, restaure um backup v3 junto com o código da Etapa 3. Registros posteriores ao backup não estarão nessa cópia. Código antigo recusa o banco v4, evitando abertura incompatível.
+Para voltar à versão com banco v3, restaure um backup v3 junto com o código de evolução. Registros posteriores ao backup não estarão nessa cópia. Código antigo recusa o banco v4, evitando abertura incompatível.
 
 ## Testes e limites de validação
 
-Na entrega de 25/10/2026, a suíte completa aprovou 55 testes de API/banco e 20 cenários de navegador (desktop e emulação móvel). Após ajustes de apresentação da comparação, impressão e capturas, os dois cenários completos da Etapa 4 foram reexecutados; o relatório da entrega registra seu resultado e os logs. Os totais do Node incluem agrupadores; a rechecagem repete cenários existentes.
+Na entrega de 25/10/2026, a suíte completa aprovou 55 testes de API/banco e 20 cenários de navegador (desktop e emulação móvel). Após ajustes de apresentação da comparação, impressão e capturas, os dois cenários completos de relatórios foram reexecutados; o relatório da entrega registra seu resultado e os logs. Os totais do Node incluem agrupadores; a rechecagem repete cenários existentes.
 
 ```powershell
 pnpm test
@@ -134,9 +128,9 @@ Não há teste em aparelhos físicos, todos os leitores de tela, impressoras fí
 
 As recorrências são semanais, finitas e sem horário, alertas ou renovação automática. Não há calendário compartilhado, importação iCalendar ou integração com serviços externos. A comparação de planos é por campos/sessões, sem mesclagem automática; a restauração de versões antigas é manual pelo editor. Algumas agregações e exportação integral ainda são realizadas em memória: o piloto não é uma solução de alto volume.
 
-IA real continua opcional e desativada por padrão. Nenhuma chamada paga foi feita. A configuração e os dados enviados estão em [ETAPA3.md](ETAPA3.md#provedores-de-ia-e-configuração). Teste com modelo/credencial real depende da autorização do responsável; não se afirma qualidade ou segurança clínica. Os controles de texto são heurísticos e a revisão humana continua obrigatória.
+IA real continua opcional e desativada por padrão. Nenhuma chamada paga foi feita. A configuração e os dados enviados estão em [EVOLUCAO.md](EVOLUCAO.md#provedores-de-ia-e-configuração). Teste com modelo/credencial real depende da autorização do responsável; não se afirma qualidade ou segurança clínica. Os controles de texto são heurísticos e a revisão humana continua obrigatória.
 
-Para a Etapa 5, recomenda-se: agregações incrementais e exportação em fluxo para bases maiores; limites operacionais medidos; metadados indexados para filtros de planos excluídos; auditoria independente de segurança/acessibilidade; aparelhos físicos e impressão real; fluxo de verificação de e-mail; operação/retensão de backups definida; avaliação autorizada do modelo com casos adversariais; e, se houver necessidade, recorrência mensal/alertas com consentimento separado.
+Para trabalhos futuros, recomenda-se: agregações incrementais e exportação em fluxo para bases maiores; limites operacionais medidos; metadados indexados para filtros de planos excluídos; auditoria independente de segurança/acessibilidade; aparelhos físicos e impressão real; fluxo de verificação de e-mail; operação/retensão de backups definida; avaliação autorizada do modelo com casos adversariais; e, se houver necessidade, recorrência mensal/alertas com consentimento separado.
 
 ## Fontes da biblioteca
 

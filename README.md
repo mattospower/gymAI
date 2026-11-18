@@ -23,14 +23,14 @@ Os resultados dos cinco usuários e os contatos mensais aguardam evidências rea
 
 ---
 
-# GymIA — Etapas 1–4 e publicação na Vercel
+# GymIA — Recursos e publicação na Vercel
 
 Esta branch acrescenta PostgreSQL persistente, função Node 24 e build para a Vercel, mantendo o SQLite local e o visual original. Consulte [o guia de publicação](docs/DEPLOY-VERCEL.md) para variáveis, banco gratuito, migração autorizada, backup/restauração, testes e configuração exata da branch. A publicação externa depende de acesso autenticado aos serviços.
 
 
-A Etapa 4 acrescenta recorrência semanal, vínculo opcional entre calendário e execução, biblioteca de 40 atividades, modelos editáveis, comparação de versões, histórico paginado e relatórios CSV/JSON com impressão. Consulte [o guia da Etapa 4](docs/ETAPA4.md) para limites, migração v4, atualização e restauração. O PR da Etapa 4 depende da Etapa 3; o PR desta adaptação de hospedagem usa a base `feat/etapa-4-expansao-gymia`.
+O GymAI oferece recorrência semanal, vínculo opcional entre calendário e execução, biblioteca de 40 atividades, modelos editáveis, comparação de versões, histórico paginado e relatórios CSV/JSON com impressão. Consulte [o guia de relatórios](docs/RELATORIOS.md) para limites, migração v4, atualização e restauração.
 
-Evolução do HTML/CSS original para contas, perfis, planos manuais e registros de treinamento. Preserva a paleta, as fontes Archivo, DM Sans e JetBrains Mono e os componentes da página inicial. Inclui calendário, estatísticas reais, exportação e assistente opcional com rascunhos sujeitos à revisão. O padrão é demonstração local sem chamadas externas. Consulte [a documentação da Etapa 3](docs/ETAPA3.md) para configuração, limites, dados enviados e atualização segura da Etapa 2.
+Evolução do HTML/CSS original para contas, perfis, planos manuais e registros de treinamento. Preserva a paleta, as fontes Archivo, DM Sans e JetBrains Mono e os componentes da página inicial. Inclui calendário, estatísticas reais, exportação e assistente opcional com rascunhos sujeitos à revisão. O padrão é demonstração local sem chamadas externas. Consulte [a documentação de evolução](docs/EVOLUCAO.md) para configuração, limites, dados enviados e atualização segura de treinos.
 
 ## Executar localmente
 
@@ -144,7 +144,7 @@ Os testes de navegador usam Chromium desktop (1440px), emulação móvel (390px)
 
 As alterações desta etapa devem ser revisadas via Pull Request; não enviar diretamente para `main`.
 
-## Sistema de treinos da Etapa 2
+## Sistema de treinos
 
 Após entrar, abra **Meus treinos** pelo perfil ou pela navegação. `treinos.html` lista planos e permite retomar uma sessão em andamento. `plano.html` monta e edita as sessões; `exercicios.html` permite pesquisar a biblioteca; `sessao-treino.html` registra valores realizados; `historico.html` consulta os registros.
 
@@ -156,7 +156,7 @@ Durante a execução, os campos são salvos no servidor após 600 ms sem novas a
 
 O usuário pode **Interromper e salvar parcial** ou **Finalizar sessão** sem completar todas as séries. Marcar uma série como concluída exige informar o valor realizado. Uma sessão encerrada fica somente para consulta. Há no máximo uma sessão em andamento por conta. Edições e salvamentos usam versões para rejeitar sobrescritas por outra aba (409), mantendo os valores da tela e orientando reabrir o item.
 
-### Banco e atualização de instalações da Etapa 1
+### Banco e atualização de instalações de contas e perfis
 
 Antes de atualizar uma instalação com dados, mantenha o `.env` e a chave original e crie um backup consistente:
 
@@ -168,13 +168,13 @@ O backup usa a SQLite Backup API e é criado no diretório `backups/` ao lado do
 
 As tabelas `training_plans` e `workout_logs` guardam os dados novos por usuário. Sessões planejadas e seus exercícios ficam no payload criptografado de cada plano; registros e a cópia dos exercícios usados ficam no payload criptografado de cada execução. Índices garantem um ativo e uma execução em andamento por conta. A exclusão de conta elimina os dados novos por cascata; excluir um plano mantém os registros, com a referência original para filtro. Alterar um plano nunca altera retroativamente uma sessão iniciada ou encerrada.
 
-Limites operacionais do piloto: 100 planos por conta, 7 sessões por plano, 30 exercícios por sessão, 20 séries por exercício e corpo de solicitação de até 256 KiB nas rotas de treinos. São limites técnicos de armazenamento, **não recomendações de volume**. Na Etapa 4, o histórico usa cursor e carrega 25 registros por página na interface; a API permite 1–500 por página e retorna o cursor seguinte. A interface converte datas do calendário local em instantes para filtrar de acordo com o horário exibido. Relatórios e calendário usam o fuso salvo nas preferências, conforme o guia da Etapa 4.
+Limites operacionais do piloto: 100 planos por conta, 7 sessões por plano, 30 exercícios por sessão, 20 séries por exercício e corpo de solicitação de até 256 KiB nas rotas de treinos. São limites técnicos de armazenamento, **não recomendações de volume**. O histórico usa cursor e carrega 25 registros por página na interface; a API permite 1–500 por página e retorna o cursor seguinte. A interface converte datas do calendário local em instantes para filtrar de acordo com o horário exibido. Relatórios e calendário usam o fuso salvo nas preferências, conforme o guia de relatórios.
 
 ### Biblioteca e testes
 
 A biblioteca inicial tem dez movimentos com resumos próprios e links individuais para a **ACE Exercise Library**, consultada em 19/10/2026. Não há alegações de adequação clínica, rotinas sugeridas, imagens ou vídeos de terceiros. Os equipamentos complementares (como bancos) estão descritos em cada cartão; o filtro do perfil compara grupos gerais, sem certificar que o local seja adequado.
 
-`pnpm test` inclui migração de um banco v1 com conta/perfil/sessão existentes, CRUD de planos, duplicação, versões, troca de ativo, arquivo/reativação, progresso e término parcial, histórico, reinício, isolamento e cascatas. `pnpm test:e2e` verifica os fluxos por UI, filtros, ordenação, persistência ao recarregar, acessibilidade e limites dos controles entre 320 e 1440 px. Os testes antigos da Etapa 1 continuam fazendo parte da suíte.
+`pnpm test` inclui migração de um banco v1 com conta/perfil/sessão existentes, CRUD de planos, duplicação, versões, troca de ativo, arquivo/reativação, progresso e término parcial, histórico, reinício, isolamento e cascatas. `pnpm test:e2e` verifica os fluxos por UI, filtros, ordenação, persistência ao recarregar, acessibilidade e limites dos controles entre 320 e 1440 px. Os testes antigos de contas e perfis continuam fazendo parte da suíte.
 
 ## Referências técnicas
 
