@@ -4,11 +4,11 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>gymAI — Treinos feitos sob medida por IA</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@700;800;900&family=DM+Sans:wght@400;500;600&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+
+
+
 <link rel="stylesheet" href="style.css">
-<meta name="description" content="GymIA: organize seu perfil e seus treinos. Crie sua conta e configure suas preferências."><script type="module" src="assets/site.js"></script></head>
+<meta name="description" content="GymIA: organize seu perfil e seus treinos. Crie sua conta e configure suas preferências."><script type="module" src="assets/site.js"></script><script type="module" src="assets/equipamentos.js"></script></head>
 <body>
 
 <a class="skip-link" href="#conteudo">Pular para o conteúdo</a>
@@ -86,7 +86,7 @@
       <div class="show rev">
         <div class="show-text">
           <h2>Veja sua força subir</h2>
-          <p>Acompanhe sua evolução com os registros dos seus treinos. Os números e gráficos exibidos são apenas ilustrativos.</p>
+          <p>Acompanhe seus registros na página de evolução. Os números e gráficos exibidos são apenas ilustrativos.</p>
           <ul class="ticks"><li>Planejado: registro de recordes pessoais</li><li>Planejado: volume por treino e semana</li><li>Planejado: acompanhamento do histórico</li></ul>
         </div>
         <div class="card pad">
@@ -103,7 +103,7 @@
     <div class="wrap">
       <div class="head">
         <h2>Como funciona</h2>
-        <p>Crie seu perfil, organize seus treinos e acompanhe sua evolução.</p>
+        <p>Crie sua conta e escolha suas preferências de treino.</p>
       </div>
       <ol class="steps">
         <li><span class="n">1</span><h3>Conte seu objetivo</h3><p>Hipertrofia, força, resistência muscular ou condicionamento, e sua experiência.</p></li>
@@ -127,6 +127,19 @@
         <div class="feat"><h3>Histórico de evolução</h3><p>Consulte frequência, cargas e repetições dos seus registros.</p></div>
       </div>
     </div>
+  </section>
+
+  <section class="wrap" id="equipamentos" aria-labelledby="titulo-equipamentos">
+    <h2 id="titulo-equipamentos">Minha lista de equipamentos</h2>
+    <p>Organize os equipamentos que pretende usar. A lista fica salva nesta aba.</p>
+    <form id="equipamento-form">
+      <label for="equipamento">Equipamento</label>
+      <select id="equipamento"><option>Halteres</option><option>Barra</option><option>Banco</option><option>Elástico</option><option>Colchonete</option></select>
+      <button class="btn btn-line" id="gravar-equipamento">Adicionar</button>
+      <button type="button" class="text-button" id="cancelar-edicao" hidden>Cancelar edição</button>
+    </form>
+    <ul id="lista-equipamentos" aria-label="Equipamentos escolhidos"></ul>
+    <p id="estado-equipamentos" role="status"></p>
   </section>
 
   <section class="cta" id="comecar">

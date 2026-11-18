@@ -88,7 +88,7 @@ function showStep(index, focus = true) {
   panels.forEach((panel, i) => {
     panel.hidden = i !== index;
   });
-  field("step-label").textContent = `Etapa ${index + 1} de 3`;
+  field("step-label").textContent = `Passo ${index + 1} de 3`;
   field("profile-progress").value = index + 1;
   document.querySelectorAll(".step-indicator li").forEach((item, i) => {
     if (i === index) item.setAttribute("aria-current", "step");

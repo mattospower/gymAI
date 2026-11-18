@@ -1,6 +1,5 @@
 # Publicação do GymIA na Vercel
 
-Esta branch parte da Etapa 4 (`152e3bd`) e contém as Etapas 1–4. Os PRs #3 e #4 ainda estavam abertos em 25/10/2026; a main estava na Etapa 2 (`04def68`). O PR desta adaptação usa como base `feat/etapa-4-expansao-gymia`, evitando repetir as entregas anteriores. Nenhum merge é necessário para publicar esta branch explicitamente.
 
 ## Publicação confirmada em 25/10/2026
 
@@ -47,7 +46,7 @@ Em consulta às páginas oficiais em 25/10/2026, o Neon Free indicava 1 GB e 100
 ## Publicação específica desta branch
 
 1. Autentique sua conta em [Vercel](https://vercel.com/dashboard). Se aparecer autorização do GitHub, conclua somente com a conta e o acesso que você pretende usar. Se for necessário aceitar termos ou ampliar permissões do repositório, o responsável deve conferir e concluir essa etapa. O projeto existente já está vinculado à CLI; prefira o procedimento manual acima.
-2. Em outra instalação, use o checkout de `mattospower/gymAI` na branch `feat/deploy-vercel-gymia` e vincule-o ao projeto correto pela CLI. A importação por GitHub é opcional e depende de acesso ao repositório. Se futuramente configurar deploy por Git, selecione explicitamente essa branch de produção. Não publique a main enquanto as Etapas 3/4 não forem integradas por revisão.
+2. Em outra instalação, use o checkout de `mattospower/gymAI` na branch `feat/deploy-vercel-gymia` e vincule-o ao projeto correto pela CLI. A importação por GitHub é opcional e depende de acesso ao repositório. Se futuramente configurar deploy por Git, selecione explicitamente essa branch de produção. Não publique a main enquanto as funcionalidades de evolução e relatórios não forem integradas por revisão.
 3. Use plano gratuito, Framework **Other**, raiz do repositório, Node **24.x**, instalação `pnpm install --frozen-lockfile` e build `pnpm run build`. Não selecione uma pasta de HTML público como Output Directory: o build gera `.vercel/output` com a função autenticada.
 4. Crie um projeto PostgreSQL **vazio** no Neon Free e obtenha sua URL com pool. Use a mesma região, ou uma região próxima da função (padrão Vercel `iad1`, Washington). Não importe nenhum SQLite existente nesta etapa.
 5. Configure as variáveis abaixo nos segredos do projeto da Vercel para Production. Registre as chaves em um gerenciador de senhas separado. Não as publique no GitHub, em screenshots ou neste chat.
@@ -77,7 +76,7 @@ O assistente permanece no modo editorial demonstrativo identificado que já exis
 - Mutação exige JSON, origem exata e cabeçalho personalizado. Não há CORS aberto. Validação e isolamento por usuário continuam no servidor; payloads sensíveis usam AES-256-GCM e senhas usam scrypt.
 - O IP encaminhado é aceito apenas no runtime da Vercel, pelo cabeçalho que ela fornece. Contadores usam HMAC e expiração persistente. Limites de operação por instância (duas derivações de senha ou chamadas simultâneas de IA) continuam locais; quotas de tentativas e de uso ficam no PostgreSQL. Isto não substitui proteção volumétrica da plataforma.
 - Pool limitado a quatro conexões por instância, consulta e conexão com timeout; configure o limite de conexões e observe o uso do provedor. Não armazene dados reais antes de definir responsáveis, contato privado e retenção de backups.
-- Exportações usam a função com streaming habilitado, preservando relatórios completos. A Vercel limita respostas não transmitidas por streaming a 4,5 MB. Confirme exportações grandes na URL hospedada; relatórios continuam limitados a 5.000 registros/32 MiB por período conforme Etapa 4.
+- Exportações usam a função com streaming habilitado, preservando relatórios completos. A Vercel limita respostas não transmitidas por streaming a 4,5 MB. Confirme exportações grandes na URL hospedada; relatórios continuam limitados a 5.000 registros/32 MiB por período conforme o guia de relatórios.
 
 ## Migração opcional de dados SQLite
 

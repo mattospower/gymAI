@@ -37,6 +37,10 @@ const publicFiles = new Set([
   "recursoso.html",
   "style.css",
   "assets/site.js",
+  "assets/fonts/archivo.woff2",
+  "assets/fonts/dm-sans.woff2",
+  "assets/fonts/jetbrains-mono.woff2",
+  "assets/equipamentos.js",
   "assets/api.js",
   "assets/auth.js",
   "assets/profile.js",
@@ -72,6 +76,7 @@ publicFiles.add("assets/reports.js");
 publicFiles.add("assets/plan-tools.js");
 publicFiles.add("assets/data-ui.js");
 const mime = {
+  woff2: "font/woff2",
   html: "text/html; charset=utf-8",
   css: "text/css; charset=utf-8",
   js: "text/javascript; charset=utf-8",
