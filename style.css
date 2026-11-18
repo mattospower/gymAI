@@ -288,8 +288,9 @@ details summary{cursor:pointer;font-weight:600;line-height:1.4}
 }
 
 /* Etapa 2: os componentes novos reutilizam o tema e as medidas dos formulários. */
-.training-tabs{height:auto;justify-content:flex-start;gap:12px 28px;flex-wrap:wrap;padding:0 0 22px;margin-bottom:28px;border-bottom:1px solid var(--line)}
-.training-tabs a{font-weight:600;font-size:14px;color:var(--blue);text-decoration:none}
+.training-tabs{height:auto;justify-content:flex-start;gap:10px;flex-wrap:wrap;padding:0 0 22px;margin-bottom:28px;border-bottom:1px solid var(--line)}
+.training-tabs a{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:9px 14px;border:1.5px solid var(--line);border-radius:12px;background:var(--surface);font-weight:600;font-size:14px;color:var(--blue);text-decoration:none;transition:background-color 140ms ease-out,border-color 140ms ease-out}
+.training-tabs a:hover{background:var(--blue-soft);border-color:var(--blue)}
 .training-actions{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
 .training-actions .btn{padding:10px 16px;font-size:14px;min-height:44px}
 .training-list{display:grid;gap:24px}
