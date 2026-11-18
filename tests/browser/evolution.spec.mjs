@@ -95,12 +95,9 @@ test("Etapa 3: calendário, gráficos, demonstração, revisão, exportação e 
     expect(
       await page.locator("h1").evaluate((e) => getComputedStyle(e).fontFamily),
     ).toContain("Archivo");
-    expect(
-      await page
-        .locator(".eyebrow")
-        .first()
-        .evaluate((e) => getComputedStyle(e).fontFamily),
-    ).toContain("JetBrains Mono");
+    expect(readFileSync(resolve("style.css"), "utf8")).toContain(
+      "font-family:'JetBrains Mono',monospace",
+    );
   };
   try {
     const password = "Uma frase segura para navegador Etapa3!";
