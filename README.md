@@ -7,10 +7,10 @@
 | Critério | Implementação e evidência | Situação |
 |---|---|---|
 | Deploy e funcionamento | Endereço público respondeu HTTP 200 em 17/11/2026. Build e teste do pacote Vercel aprovados localmente. | Última revisão aguarda publicação e conferência no domínio. |
-| Interatividade | Na página inicial, o formulário de equipamentos usa preventDefault(). Adicionar, editar e remover atualizam a lista pelo DOM. | Implementado. [Código](assets/equipamentos.js) |
-| Persistência após F5 | A lista é gravada e restaurada via sessionStorage na mesma aba. A exclusão também atualiza o armazenamento. | Implementado. [Teste de regressão](tests/browser/equipamentos.spec.mjs) |
-| Estabilidade do console | O teste da lista verifica erros de JavaScript e do console. A suíte funcional e o teste de empacotamento passaram. | Conferência no navegador da versão final pendente. |
-| Responsividade e acessibilidade | CSS flexível, quebra de linha nas ações, rótulos, botões com nome acessível, foco de teclado e região de status. Há testes desktop, celular e axe. | Implementado. Validação visual final pendente. |
+| Interatividade | Na página inicial, o formulário de equipamentos usa preventDefault(). Adicionar, editar e remover atualizam a lista pelo DOM. | Validado em Chromium desktop e celular. [Código](assets/equipamentos.js) |
+| Persistência após F5 | A lista é gravada e restaurada via sessionStorage na mesma aba. A exclusão também atualiza o armazenamento. | Edição e exclusão verificadas após F5 em desktop e celular. [Teste de regressão](tests/browser/equipamentos.spec.mjs) |
+| Estabilidade do console | O teste da lista verifica erros de JavaScript e do console. A suíte funcional e o teste de empacotamento passaram. | Fluxo da lista verificado sem erros no console em desktop e celular. Repetir no domínio após o deploy. |
+| Responsividade e acessibilidade | CSS flexível, quebra de linha nas ações, rótulos, botões com nome acessível, foco de teclado e região de status. Há testes desktop, celular e axe. | Lista sem overflow em desktop e celular; teste de navegação e largura de 320 px aprovado no Chromium desktop. Repetir no domínio após o deploy. |
 
 **Demonstração:** na [lista de equipamentos](https://gymia-gym-ia1.vercel.app/#equipamentos), adicionar Halteres, editar para Banco, pressionar F5 e remover Banco. Manter o Console aberto e repetir na visualização de celular após publicar esta revisão.
 

@@ -1,3 +1,6 @@
+@font-face{font-family:"Archivo";src:url("assets/fonts/archivo.woff2") format("woff2");font-weight:100 900;font-display:swap}
+@font-face{font-family:"DM Sans";src:url("assets/fonts/dm-sans.woff2") format("woff2");font-weight:100 900;font-display:swap}
+@font-face{font-family:"JetBrains Mono";src:url("assets/fonts/jetbrains-mono.woff2") format("woff2");font-weight:100 900;font-display:swap}
 :root{
   --bg:#EFF3F9; --bg-soft:#E2E9F5; --surface:#FBFCFE;
   --ink:#050F26; --muted:#37465F; --line:#B9C6DD;
